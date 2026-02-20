@@ -4,9 +4,10 @@
   "scripts": {
     "ng": "ng",
     "build:tailwind": "tailwindcss -i ./src/tailwind-input.css -o ./src/tailwind.generated.css",
+    "prebuild": "node scripts/replace-env.js",
     "start": "npm run build:tailwind && ng serve",
     "build": "npm run build:tailwind && ng build --configuration production",
-    "vercel-build": "npm run build:tailwind && ng build --configuration production",
+    "vercel-build": "npm run prebuild && npm run build:tailwind && ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
