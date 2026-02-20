@@ -113,9 +113,34 @@ import Swal from 'sweetalert2';
         <h3 class="text-xl font-semibold mb-4 text-gray-700">Users List</h3>
         <div class="overflow-x-auto -mx-3 sm:mx-0">
           <div class="inline-block min-w-full align-middle">
-            <table class="min-w-full divide-y divide-gray-200">
+            <!-- Loading skeleton -->
+            <table *ngIf="loading" class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-14">Profile</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr *ngFor="let i of [1,2,3,4,5]" class="animate-pulse">
+                  <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-circle w-10 h-10 rounded-full"></div></td>
+                  <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-24 h-4"></div></td>
+                  <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-32 h-4"></div></td>
+                  <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-16 h-4"></div></td>
+                  <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-20 h-4"></div></td>
+                  <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-24 h-4"></div></td>
+                </tr>
+              </tbody>
+            </table>
+            <!-- Actual table -->
+            <table *ngIf="!loading" class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-14">Profile</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
@@ -125,6 +150,14 @@ import Swal from 'sweetalert2';
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               <tr *ngFor="let user of users" class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 border border-gray-200"
+                    [style.backgroundColor]="!user.photo ? getAvatarColor(user.name).bg : null"
+                    [style.color]="!user.photo ? getAvatarColor(user.name).text : null">
+                    <img *ngIf="user.photo" [src]="user.photo" alt="" class="w-full h-full object-cover" />
+                    <span *ngIf="!user.photo" class="text-sm font-semibold">{{ getInitials(user.name) }}</span>
+                  </div>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ user.name }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ user.email }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
@@ -181,7 +214,7 @@ import Swal from 'sweetalert2';
                 </td>
               </tr>
               <tr *ngIf="users.length === 0">
-                <td colspan="5" class="px-6 py-4 text-center text-gray-500">No users found</td>
+                <td colspan="6" class="px-6 py-4 text-center text-gray-500">No users found</td>
               </tr>
             </tbody>
           </table>
@@ -193,6 +226,7 @@ import Swal from 'sweetalert2';
 })
 export class ManageUsersComponent implements OnInit {
   users: User[] = [];
+  loading = true;
   showAddForm = false;
   editingUser: User | null = null;
   userForm: FormGroup;
@@ -225,9 +259,14 @@ export class ManageUsersComponent implements OnInit {
   }
 
   loadUsers() {
+    this.loading = true;
     this.userService.getUsers().subscribe({
       next: (users) => {
         this.users = users;
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
       }
     });
   }
@@ -362,6 +401,39 @@ export class ManageUsersComponent implements OnInit {
     this.userForm.reset();
     this.userForm.get('password')?.setValidators([Validators.required]);
     this.userForm.get('password')?.updateValueAndValidity();
+  }
+
+  /** Initials from name: first letter of first word + first letter of last word, or first 2 chars if single word */
+  getInitials(name: string): string {
+    if (!name || !name.trim()) return '?';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return (name.slice(0, 2) || name[0]).toUpperCase();
+  }
+
+  /** Consistent color per name for avatar when no photo (name-based hash) */
+  getAvatarColor(name: string): { bg: string; text: string } {
+    const palette: { bg: string; text: string }[] = [
+      { bg: '#dbeafe', text: '#1d4ed8' },
+      { bg: '#e9d5ff', text: '#6b21a8' },
+      { bg: '#d1fae5', text: '#047857' },
+      { bg: '#fed7aa', text: '#c2410c' },
+      { bg: '#fecdd3', text: '#be123c' },
+      { bg: '#e0e7ff', text: '#3730a3' },
+      { bg: '#fef3c7', text: '#b45309' },
+      { bg: '#cffafe', text: '#0e7490' },
+      { bg: '#fce7f3', text: '#9d174d' },
+      { bg: '#d1fae5', text: '#065f46' },
+      { bg: '#0096D2', text: '#ffffff' },
+      { bg: '#7c3aed', text: '#ffffff' }
+    ];
+    let hash = 0;
+    const s = (name || '').trim();
+    for (let i = 0; i < s.length; i++) hash = ((hash << 5) - hash) + s.charCodeAt(i);
+    const idx = Math.abs(hash) % palette.length;
+    return palette[idx];
   }
 
   getRoleClass(role: string): string {

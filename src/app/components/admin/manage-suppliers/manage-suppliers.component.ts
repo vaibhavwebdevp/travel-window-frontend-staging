@@ -74,7 +74,25 @@ import Swal from 'sweetalert2';
         <h3 class="text-xl font-semibold mb-4 text-gray-700">Suppliers List</h3>
         <div class="overflow-x-auto -mx-3 sm:mx-0">
           <div class="inline-block min-w-full align-middle">
-            <table class="min-w-full divide-y divide-gray-200">
+            <!-- Loading skeleton -->
+            <table *ngIf="loading" class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr *ngFor="let i of [1,2,3,4,5]" class="animate-pulse">
+                  <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-32 h-4"></div></td>
+                  <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-16 h-4"></div></td>
+                  <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-24 h-4"></div></td>
+                </tr>
+              </tbody>
+            </table>
+            <!-- Actual table -->
+            <table *ngIf="!loading" class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
@@ -128,6 +146,7 @@ import Swal from 'sweetalert2';
 })
 export class ManageSuppliersComponent implements OnInit {
   suppliers: Supplier[] = [];
+  loading = true;
   showAddForm = false;
   editingSupplier: Supplier | null = null;
   supplierForm: FormGroup;
@@ -148,9 +167,14 @@ export class ManageSuppliersComponent implements OnInit {
   }
 
   loadSuppliers() {
+    this.loading = true;
     this.supplierService.getSuppliers().subscribe({
       next: (suppliers) => {
         this.suppliers = suppliers;
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
       }
     });
   }

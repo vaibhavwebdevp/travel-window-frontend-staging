@@ -24,18 +24,26 @@ const PAYMENT_MODES: PaymentModeFilter[] = [
 
       <!-- Summary cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="card">
-          <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Payments</p>
-          <p class="mt-1 text-2xl font-semibold text-primary-600">{{ summary.totalPayments }}</p>
-        </div>
-        <div class="card">
-          <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Amount</p>
-          <p class="mt-1 text-2xl font-semibold text-primary-600">₹{{ summary.totalAmount | number:'1.0-0' }}</p>
-        </div>
-        <div class="card">
-          <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Average Payment</p>
-          <p class="mt-1 text-2xl font-semibold text-primary-600">₹{{ summary.averagePayment | number:'1.2-2' }}</p>
-        </div>
+        <ng-container *ngIf="loading">
+          <div *ngFor="let i of [1,2,3]" class="card animate-pulse">
+            <div class="skeleton-line w-28 h-3 mb-2"></div>
+            <div class="skeleton-line w-20 h-8"></div>
+          </div>
+        </ng-container>
+        <ng-container *ngIf="!loading">
+          <div class="card">
+            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Payments</p>
+            <p class="mt-1 text-2xl font-semibold text-primary-600">{{ summary.totalPayments }}</p>
+          </div>
+          <div class="card">
+            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Amount</p>
+            <p class="mt-1 text-2xl font-semibold text-primary-600">₹{{ summary.totalAmount | number:'1.0-0' }}</p>
+          </div>
+          <div class="card">
+            <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Average Payment</p>
+            <p class="mt-1 text-2xl font-semibold text-primary-600">₹{{ summary.averagePayment | number:'1.2-2' }}</p>
+          </div>
+        </ng-container>
       </div>
 
       <!-- Filters -->
@@ -91,7 +99,8 @@ const PAYMENT_MODES: PaymentModeFilter[] = [
       <!-- Payments table -->
       <div class="card overflow-x-auto -mx-3 sm:mx-0">
         <div class="inline-block min-w-full align-middle">
-          <table class="min-w-full divide-y divide-gray-200">
+          <!-- Loading skeleton -->
+          <table *ngIf="loading" class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
@@ -104,10 +113,32 @@ const PAYMENT_MODES: PaymentModeFilter[] = [
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr *ngIf="loading" class="bg-white">
-                <td colspan="7" class="px-6 py-8 text-center text-gray-500">Loading...</td>
+              <tr *ngFor="let i of [1,2,3,4,5]" class="animate-pulse">
+                <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-20 h-4"></div></td>
+                <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-16 h-4"></div></td>
+                <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-24 h-4"></div></td>
+                <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-14 h-4"></div></td>
+                <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-20 h-4"></div></td>
+                <td class="px-6 py-4"><div class="skeleton-line w-24 h-4"></div></td>
+                <td class="px-6 py-4 whitespace-nowrap"><div class="skeleton-line w-20 h-4"></div></td>
               </tr>
-              <tr *ngIf="!loading && payments.length === 0" class="bg-white">
+            </tbody>
+          </table>
+          <!-- Actual table -->
+          <table *ngIf="!loading" class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking PNR</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Passenger</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mode</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Added By</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngIf="payments.length === 0" class="bg-white">
                 <td colspan="7" class="px-6 py-8 text-center text-gray-500">No payments found.</td>
               </tr>
               <tr *ngFor="let p of payments" class="hover:bg-gray-50">
@@ -131,7 +162,7 @@ const PAYMENT_MODES: PaymentModeFilter[] = [
 export class PaymentsManagementComponent implements OnInit {
   payments: PaymentRow[] = [];
   summary = { totalPayments: 0, totalAmount: 0, averagePayment: 0 };
-  loading = false;
+  loading = true;
   paymentModes = PAYMENT_MODES;
   filters = {
     pnr: '',

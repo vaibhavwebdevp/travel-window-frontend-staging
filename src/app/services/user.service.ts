@@ -8,6 +8,7 @@ export interface User {
   name: string;
   role: 'AGENT1' | 'AGENT2' | 'ACCOUNT' | 'ADMIN';
   isActive?: boolean;
+  photo?: string;
 }
 
 import { environment } from '../../environments/environment';

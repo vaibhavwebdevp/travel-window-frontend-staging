@@ -9,6 +9,7 @@ export interface User {
   email: string;
   name: string;
   role: 'AGENT1' | 'AGENT2' | 'ACCOUNT' | 'ADMIN';
+  photo?: string;
 }
 
 export interface AuthResponse {
@@ -89,5 +90,17 @@ export class AuthService {
 
   getCurrentUserValue(): User | null {
     return this.currentUserSubject.value;
+  }
+
+  updateProfile(data: { name?: string; photo?: string }): Observable<{ user: User }> {
+    return this.http.put<{ user: User }>(`${this.apiUrl}/auth/me`, data, { withCredentials: true })
+      .pipe(tap(res => this.currentUserSubject.next(res.user)));
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/auth/me/change-password`, {
+      currentPassword,
+      newPassword
+    }, { withCredentials: true });
   }
 }

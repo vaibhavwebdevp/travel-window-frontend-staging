@@ -127,9 +127,24 @@ import { AuthService } from '../../services/auth.service';
         </form>
       </div>
 
-      <!-- Loading State -->
-      <div *ngIf="loading" class="text-center py-8">
-        <p class="text-gray-600">Loading report...</p>
+      <!-- Loading skeleton -->
+      <div *ngIf="loading" class="card space-y-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div *ngFor="let i of [1,2,3,4]" class="p-4 rounded-lg bg-gray-50 animate-pulse">
+            <div class="skeleton-line w-24 h-3 mb-2"></div>
+            <div class="skeleton-line w-16 h-8"></div>
+          </div>
+        </div>
+        <div class="border-t border-gray-100 pt-4">
+          <div class="skeleton-line w-40 h-5 mb-4"></div>
+          <div class="space-y-2">
+            <div *ngFor="let i of [1,2,3,4,5]" class="flex gap-4 animate-pulse">
+              <div class="skeleton-line flex-1 h-4"></div>
+              <div class="skeleton-line w-24 h-4"></div>
+              <div class="skeleton-line w-20 h-4"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Date-wise Results -->

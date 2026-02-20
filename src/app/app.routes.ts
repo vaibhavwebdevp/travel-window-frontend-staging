@@ -11,6 +11,7 @@ import { ManageUsersComponent } from './components/admin/manage-users/manage-use
 import { ManageSuppliersComponent } from './components/admin/manage-suppliers/manage-suppliers.component';
 import { PaymentsManagementComponent } from './components/admin/payments-management/payments-management.component';
 import { DashboardHomeComponent } from './components/dashboard/dashboard-home/dashboard-home.component';
+import { SettingsComponent } from './components/settings/settings.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -20,6 +21,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: '', component: DashboardHomeComponent },
+      { path: 'settings', component: SettingsComponent },
       { path: 'bookings/new', component: NewBookingComponent },
       { path: 'bookings', component: BookingListComponent },
       { path: 'bookings/search', component: SearchBookingComponent },

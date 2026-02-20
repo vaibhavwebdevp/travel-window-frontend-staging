@@ -17,8 +17,29 @@ import { ToastrService } from 'ngx-toastr';
         <button [routerLink]="['/dashboard/bookings']" class="btn-on-gradient">Back to List</button>
       </div>
 
-      <div *ngIf="loading" class="text-center py-8">
-        <p class="text-gray-600">Loading...</p>
+      <div *ngIf="loading" class="space-y-6">
+        <div class="card animate-pulse">
+          <div class="skeleton-line w-48 h-6 mb-4"></div>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div *ngFor="let i of [1,2,3,4,5,6]" class="space-y-1">
+              <div class="skeleton-line w-24 h-3"></div>
+              <div class="skeleton-line w-32 h-4"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card animate-pulse">
+          <div class="skeleton-line w-40 h-5 mb-4"></div>
+          <div class="flex flex-wrap gap-2">
+            <div class="skeleton-line w-24 h-8 rounded"></div>
+            <div class="skeleton-line w-28 h-8 rounded"></div>
+            <div class="skeleton-line w-32 h-8 rounded"></div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="loadError && !loading" class="card text-center py-10">
+        <p class="text-gray-600 font-medium">{{ loadError }}</p>
+        <a [routerLink]="['/dashboard/bookings']" class="btn btn-primary mt-4 inline-block">Back to List</a>
       </div>
 
       <div *ngIf="booking && !loading" class="space-y-6">
@@ -116,17 +137,17 @@ import { ToastrService } from 'ngx-toastr';
               <label class="block text-sm font-medium text-gray-500 mb-1">Total Sale Price</label>
               <p class="text-gray-900 font-semibold">{{ booking.totalSalePrice | number:'1.2-2' }}</p>
             </div>
-            <div>
+            <div *ngIf="canSeePaymentInfo()">
               <label class="block text-sm font-medium text-gray-500 mb-1">Total Paid</label>
               <p class="text-gray-900">{{ booking.totalPaidAmount | number:'1.2-2' }}</p>
             </div>
-            <div>
+            <div *ngIf="canSeePaymentInfo()">
               <label class="block text-sm font-medium text-gray-500 mb-1">Balance Amount</label>
               <p class="text-gray-900 font-semibold" [ngClass]="{'text-red-600': (booking.balanceAmount || 0) > 0}">
                 {{ (booking.balanceAmount || 0) | number:'1.2-2' }}
               </p>
             </div>
-            <div>
+            <div *ngIf="canSeePaymentInfo()">
               <label class="block text-sm font-medium text-gray-500 mb-1">Billing Status</label>
               <span class="badge" [ngClass]="getBillingStatusClass(booking.billingStatus || 'Unpaid')">
                 {{ booking.billingStatus || 'Unpaid' }}
@@ -161,8 +182,8 @@ import { ToastrService } from 'ngx-toastr';
             </div>
           </div>
 
-          <!-- Payments -->
-          <div *ngIf="booking.payments && booking.payments.length > 0" class="mt-4">
+          <!-- Payments: only Account & Admin can see/manage -->
+          <div *ngIf="canSeePaymentInfo() && booking.payments && booking.payments.length > 0" class="mt-4">
             <h4 class="text-lg font-semibold mb-2">Payment History</h4>
             <div class="overflow-x-auto">
               <table class="min-w-full divide-y divide-gray-200">
@@ -275,8 +296,10 @@ import { ToastrService } from 'ngx-toastr';
             </button>
             <button 
               *ngIf="canCancel()" 
-              (click)="showCancelForm = !showCancelForm" 
+              (click)="openCancelFormOnly()" 
               class="btn btn-danger"
+              [class.ring-2]="showCancelForm"
+              [class.ring-red-500]="showCancelForm"
             >
               Cancel Booking
             </button>
@@ -482,6 +505,7 @@ import { ToastrService } from 'ngx-toastr';
 export class BookingDetailComponent implements OnInit {
   booking: Booking | null = null;
   loading = true;
+  loadError: string | null = null;
   showDateChangeForm = false;
   showFlightChangeForm = false;
   showCancelForm = false;
@@ -550,6 +574,7 @@ export class BookingDetailComponent implements OnInit {
 
   loadBooking(id: string) {
     this.loading = true;
+    this.loadError = null;
     this.bookingService.getBooking(id).subscribe({
       next: (booking) => {
         this.booking = booking;
@@ -557,8 +582,9 @@ export class BookingDetailComponent implements OnInit {
         this.loading = false;
         this.initializeForms();
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
+        this.loadError = err?.error?.message || (err?.status === 403 ? 'You don\'t have permission to view this booking.' : 'Failed to load booking. Please try again.');
       }
     });
   }
@@ -642,23 +668,30 @@ export class BookingDetailComponent implements OnInit {
     return false;
   }
 
+  /** Edit: Admin all; Agent1 until verified; Agent2 commercial only until verified; Account payments only */
   canEdit(): boolean {
     if (!this.booking) return false;
     const user = this.authService.getCurrentUserValue();
     if (!user) return false;
-    
+    const verified = this.booking.verifiedByAccount || this.booking.verifiedByAdmin;
     if (user.role === 'ADMIN') return true;
-    if (user.role === 'AGENT1') {
-      return !this.booking.verifiedByAccount && !this.booking.verifiedByAdmin;
-    }
+    if (user.role === 'ACCOUNT') return this.booking.status !== 'Draft';
+    if (user.role === 'AGENT1') return !verified;
+    if (user.role === 'AGENT2') return this.booking.status !== 'Draft' && !verified;
     return false;
   }
 
+  /** Date Change: only Agents & Admin; Account does not do date/flight changes */
   canDateChange(): boolean {
+    const user = this.authService.getCurrentUserValue();
+    if (user?.role === 'ACCOUNT') return false;
     return this.booking !== null && (!this.booking.cancellation || !this.booking.cancellation.isCancelled);
   }
 
+  /** Flight Change: only Agents & Admin; Account does not do date/flight changes */
   canFlightChange(): boolean {
+    const user = this.authService.getCurrentUserValue();
+    if (user?.role === 'ACCOUNT') return false;
     return this.booking !== null && (!this.booking.cancellation || !this.booking.cancellation.isCancelled);
   }
 
@@ -682,6 +715,17 @@ export class BookingDetailComponent implements OnInit {
     this.showFlightChangeForm = true;
     this.showDateChangeForm = false;
     this.showCancelForm = false;
+  }
+
+  /** Open only Cancel form; close Date Change and Flight Change */
+  openCancelFormOnly() {
+    if (this.showCancelForm) {
+      this.showCancelForm = false;
+      return;
+    }
+    this.showCancelForm = true;
+    this.showDateChangeForm = false;
+    this.showFlightChangeForm = false;
   }
 
   /** Build list of old → new for Progress History (Date Change, Flight Change, etc.) */
@@ -801,6 +845,12 @@ export class BookingDetailComponent implements OnInit {
     if (a.includes('flight change')) return 'bg-indigo-500';
     if (a.includes('seat')) return 'bg-amber-500';
     return 'bg-[#0096D2]';
+  }
+
+  /** Payment-related fields (Total Paid, Balance, Billing Status, Payment History): only Account & Admin */
+  canSeePaymentInfo(): boolean {
+    const user = this.authService.getCurrentUserValue();
+    return user?.role === 'ACCOUNT' || user?.role === 'ADMIN';
   }
 
   canCancel(): boolean {
