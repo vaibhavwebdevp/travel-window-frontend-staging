@@ -30,10 +30,13 @@ import { AuthService } from '../../../services/auth.service';
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
-            <select formControlName="supplier" class="input">
+            <select formControlName="supplier" class="input" [disabled]="loadingSuppliers">
               <option value="">All Suppliers</option>
               <option *ngFor="let s of suppliers" [value]="s._id">{{ s.name }}</option>
             </select>
+            <div *ngIf="loadingSuppliers" class="mt-1">
+              <div class="skeleton-line w-full h-10"></div>
+            </div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Date From</label>
@@ -53,7 +56,35 @@ import { AuthService } from '../../../services/auth.service';
       <!-- Bookings Table -->
       <div class="card overflow-x-auto -mx-3 sm:mx-0">
         <div class="inline-block min-w-full align-middle">
-          <table class="min-w-full divide-y divide-gray-200">
+          <!-- Loading skeleton -->
+          <table *ngIf="loading" class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PNR</th>
+                <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Passenger</th>
+                <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Contact</th>
+                <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Account Verified</th>
+                <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Admin Verified</th>
+                <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Pending Amount</th>
+                <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let i of [1,2,3,4,5]" class="animate-pulse">
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap"><div class="skeleton-line w-20 h-4"></div></td>
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap"><div class="skeleton-line w-24 h-4"></div></td>
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell"><div class="skeleton-line w-20 h-4"></div></td>
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap"><div class="skeleton-line w-16 h-4"></div></td>
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden md:table-cell"><div class="skeleton-line w-20 h-4"></div></td>
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden md:table-cell"><div class="skeleton-line w-20 h-4"></div></td>
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden lg:table-cell"><div class="skeleton-line w-16 h-4"></div></td>
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap"><div class="skeleton-line w-12 h-4"></div></td>
+              </tr>
+            </tbody>
+          </table>
+          <!-- Actual table -->
+          <table *ngIf="!loading" class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
               <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PNR</th>
@@ -136,6 +167,8 @@ export class BookingListComponent implements OnInit {
   currentPage = 1;
   totalPages = 1;
   total = 0;
+  loading = true;
+  loadingSuppliers = true;
 
   constructor(
     private bookingService: BookingService,
@@ -163,14 +196,20 @@ export class BookingListComponent implements OnInit {
   }
 
   loadSuppliers() {
+    this.loadingSuppliers = true;
     this.supplierService.getSuppliers().subscribe({
       next: (suppliers) => {
         this.suppliers = suppliers;
+        this.loadingSuppliers = false;
+      },
+      error: () => {
+        this.loadingSuppliers = false;
       }
     });
   }
 
   loadBookings() {
+    this.loading = true;
     const params: any = {
       page: this.currentPage,
       limit: 10
@@ -188,6 +227,10 @@ export class BookingListComponent implements OnInit {
         this.currentPage = response.currentPage;
         this.totalPages = response.totalPages;
         this.total = response.total;
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
       }
     });
   }

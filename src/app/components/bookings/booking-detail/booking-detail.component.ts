@@ -257,15 +257,19 @@ import { ToastrService } from 'ngx-toastr';
             </button>
             <button 
               *ngIf="canDateChange()" 
-              (click)="showDateChangeForm = !showDateChangeForm" 
+              (click)="openDateChangeOnly()" 
               class="btn btn-secondary"
+              [class.ring-2]="showDateChangeForm"
+              [class.ring-[#0096D2]]="showDateChangeForm"
             >
               Date Change
             </button>
             <button 
               *ngIf="canFlightChange()" 
-              (click)="showFlightChangeForm = !showFlightChangeForm" 
+              (click)="openFlightChangeOnly()" 
               class="btn btn-secondary"
+              [class.ring-2]="showFlightChangeForm"
+              [class.ring-[#0096D2]]="showFlightChangeForm"
             >
               Flight Change
             </button>
@@ -418,22 +422,57 @@ import { ToastrService } from 'ngx-toastr';
         </div>
 
         <!-- Progress History -->
-        <div class="card">
-          <h3 class="text-xl font-semibold mb-4 text-gray-700">Progress History</h3>
-          <div class="space-y-4">
-            <div *ngFor="let history of booking.progressHistory" class="border-l-4 border-primary-500 pl-4 py-2">
-              <div class="flex justify-between items-start">
-                <div>
-                  <p class="font-medium text-gray-900">{{ history.action }}</p>
-                  <p class="text-sm text-gray-600">{{ history.performedByName }}</p>
-                  <p class="text-xs text-gray-500">{{ history.timestamp | date:'short' }}</p>
-                  <p *ngIf="history.remarks" class="text-sm text-gray-700 mt-1">{{ history.remarks }}</p>
+        <div class="card overflow-hidden">
+          <h3 class="text-xl font-semibold text-gray-800 mb-1">Progress History</h3>
+          <p class="text-sm text-gray-500 mb-6">Who changed what and when</p>
+
+          <div *ngIf="booking.progressHistory && booking.progressHistory.length > 0" class="relative">
+            <!-- Timeline line -->
+            <div class="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gray-200 rounded-full"></div>
+
+            <div class="space-y-0">
+              <div *ngFor="let history of booking.progressHistory; let i = index" class="relative flex gap-4 pb-6 last:pb-0">
+                <!-- Dot -->
+                <div class="relative z-10 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shadow"
+                  [ngClass]="getHistoryActionClass(history.action)">
+                  {{ i + 1 }}
+                </div>
+                <!-- Content card -->
+                <div class="flex-1 min-w-0 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow p-4">
+                  <div class="flex flex-wrap items-center gap-2 gap-y-1 mb-1">
+                    <span class="font-semibold text-gray-900">{{ history.action }}</span>
+                    <span class="text-xs text-gray-400">·</span>
+                    <span class="text-sm text-gray-600">{{ history.performedByName }}</span>
+                    <span class="text-xs text-gray-400">{{ history.timestamp | date:'medium' }}</span>
+                  </div>
+                  <p *ngIf="history.remarks" class="text-sm text-gray-600 mt-2 pl-1 border-l-2 border-gray-200">{{ history.remarks }}</p>
+                  <!-- Old → New -->
+                  <div *ngIf="history.changes && getChangeEntries(history).length" class="mt-3 space-y-2">
+                    <div *ngFor="let row of getChangeEntries(history)" class="flex flex-wrap items-center gap-2 text-sm bg-gray-50 rounded-lg px-3 py-2">
+                      <span class="font-medium text-gray-600 min-w-[80px]">{{ row.label }}</span>
+                      <span class="text-red-600/90 line-through">{{ row.old }}</span>
+                      <span class="text-gray-400">→</span>
+                      <span class="text-green-700 font-medium">{{ row.new }}</span>
+                    </div>
+                  </div>
+                  <!-- Simple changes: compact grid -->
+                  <div *ngIf="history.changes && getChangeEntries(history).length === 0 && getSimpleChanges(history).length" class="mt-3 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 px-4 py-3 text-sm">
+                      <div *ngFor="let row of getSimpleChanges(history)" class="flex gap-2 items-baseline">
+                        <span class="font-medium text-gray-600 shrink-0 min-w-[7rem]">{{ row.label }}</span>
+                        <span class="text-gray-800 break-words">{{ row.value }}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            <div *ngIf="!booking.progressHistory || booking.progressHistory.length === 0" class="text-gray-500">
-              No history available
-            </div>
+          </div>
+
+          <div *ngIf="!booking.progressHistory || booking.progressHistory.length === 0"
+            class="text-center py-10 px-4 rounded-xl bg-gray-50 border border-dashed border-gray-200">
+            <p class="text-gray-500 font-medium">No history yet</p>
+            <p class="text-sm text-gray-400 mt-1">Changes to this booking will appear here</p>
           </div>
         </div>
       </div>
@@ -621,6 +660,147 @@ export class BookingDetailComponent implements OnInit {
 
   canFlightChange(): boolean {
     return this.booking !== null && (!this.booking.cancellation || !this.booking.cancellation.isCancelled);
+  }
+
+  /** Open only Date Change form; close Flight Change and Cancel */
+  openDateChangeOnly() {
+    if (this.showDateChangeForm) {
+      this.showDateChangeForm = false;
+      return;
+    }
+    this.showDateChangeForm = true;
+    this.showFlightChangeForm = false;
+    this.showCancelForm = false;
+  }
+
+  /** Open only Flight Change form; close Date Change and Cancel */
+  openFlightChangeOnly() {
+    if (this.showFlightChangeForm) {
+      this.showFlightChangeForm = false;
+      return;
+    }
+    this.showFlightChangeForm = true;
+    this.showDateChangeForm = false;
+    this.showCancelForm = false;
+  }
+
+  /** Build list of old → new for Progress History (Date Change, Flight Change, etc.) */
+  getChangeEntries(history: any): { label: string; old: string; new: string }[] {
+    const c = history.changes || {};
+    const out: { label: string; old: string; new: string }[] = [];
+
+    // Date Change: oldTravelDate, newTravelDate, oldReturnDate, newReturnDate, oldOurCost, newOurCost, oldSalePrice, newSalePrice
+    if (c.oldTravelDate != null || c.newTravelDate != null) {
+      out.push({
+        label: 'Travel Date',
+        old: c.oldTravelDate ? this.formatDate(c.oldTravelDate) : '–',
+        new: c.newTravelDate ? this.formatDate(c.newTravelDate) : '–'
+      });
+    }
+    const oldRet = c.oldReturnDate ? this.formatDate(c.oldReturnDate) : '–';
+    const newRet = c.newReturnDate ? this.formatDate(c.newReturnDate) : '–';
+    const isEpochOr1970 = (d: any) => {
+      if (!d) return true;
+      const t = typeof d === 'string' ? new Date(d).getTime() : (d instanceof Date ? d.getTime() : 0);
+      return !t || new Date(t).getFullYear() <= 1970;
+    };
+    if ((c.oldReturnDate != null || c.newReturnDate != null) && !(isEpochOr1970(c.oldReturnDate) && isEpochOr1970(c.newReturnDate))) {
+      out.push({
+        label: 'Return Date',
+        old: isEpochOr1970(c.oldReturnDate) ? '–' : oldRet,
+        new: isEpochOr1970(c.newReturnDate) ? '–' : newRet
+      });
+    }
+    if (c.oldOurCost != null || c.newOurCost != null) {
+      out.push({
+        label: 'Our Cost',
+        old: c.oldOurCost != null ? String(c.oldOurCost) : '–',
+        new: c.newOurCost != null ? String(c.newOurCost) : '–'
+      });
+    }
+    if (c.oldSalePrice != null || c.newSalePrice != null) {
+      out.push({
+        label: 'Sale Price',
+        old: c.oldSalePrice != null ? String(c.oldSalePrice) : '–',
+        new: c.newSalePrice != null ? String(c.newSalePrice) : '–'
+      });
+    }
+
+    // Flight Change: oldDetails / newDetails
+    const oldD = c.oldDetails || {};
+    const newD = c.newDetails || {};
+    const flightKeys = ['airline', 'from', 'to', 'travelDate', 'returnDate'] as const;
+    for (const k of flightKeys) {
+      const ov = oldD[k];
+      const nv = newD[k];
+      if (ov != null || nv != null) {
+        const label = k === 'from' ? 'From' : k === 'to' ? 'To' : k === 'travelDate' ? 'Travel Date' : k === 'returnDate' ? 'Return Date' : 'Airline';
+        out.push({
+          label,
+          old: ov != null ? (k === 'travelDate' || k === 'returnDate' ? this.formatDate(ov) : String(ov)) : '–',
+          new: nv != null ? (k === 'travelDate' || k === 'returnDate' ? this.formatDate(nv) : String(nv)) : '–'
+        });
+      }
+    }
+
+    return out;
+  }
+
+  /** Simple key-value for history that has no old/new (e.g. Booking Updated by Admin) */
+  getSimpleChanges(history: any): { label: string; value: string }[] {
+    const c = history.changes || {};
+    const skip = [
+      'remarks', 'changedBy', 'changedAt', 'newDetails', 'oldDetails',
+      'oldTravelDate', 'newTravelDate', 'oldReturnDate', 'newReturnDate',
+      'oldOurCost', 'newOurCost', 'oldSalePrice', 'newSalePrice',
+      'multipleSectors', '__v'
+    ];
+    const labels: Record<string, string> = {
+      paxName: 'Passenger', contactPerson: 'Contact Person', contactNumber: 'Contact',
+      from: 'From', to: 'To', travelDate: 'Travel Date', returnDate: 'Return Date',
+      status: 'Status', supplier: 'Supplier', supplierName: 'Supplier',
+      ourCost: 'Our Cost', salePrice: 'Sale Price', pnr: 'PNR',
+      dateOfSubmission: 'Submitted', sectorType: 'Sector', note: 'Note',
+      airline: 'Airline', additionalService: 'Add. Service', additionalServicePrice: 'Add. Service Price',
+      paymentType: 'Payment Type', billingStatus: 'Billing Status', cancellation: 'Cancellation',
+      payments: 'Payments'
+    };
+    const dateKeys = ['travelDate', 'returnDate', 'dateOfSubmission', 'paymentDate'];
+    const out: { label: string; value: string }[] = [];
+    for (const key of Object.keys(c)) {
+      if (skip.includes(key)) continue;
+      const val = c[key];
+      const label = labels[key] || this.formatLabel(key);
+      let value = '';
+      if (val == null) value = '–';
+      else if (Array.isArray(val)) value = val.length ? (key === 'payments' ? `${val.length} payment(s)` : `${val.length} item(s)`) : '–';
+      else if (typeof val === 'object' && val !== null && !(val instanceof Date)) value = JSON.stringify(val).length > 50 ? 'Updated' : JSON.stringify(val);
+      else if (dateKeys.includes(key) || (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val))) value = this.formatDate(val);
+      else value = String(val);
+      if (value) out.push({ label, value });
+    }
+    return out;
+  }
+
+  private formatLabel(key: string): string {
+    return key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase()).trim();
+  }
+
+  private formatDate(v: any): string {
+    if (!v) return '–';
+    const d = typeof v === 'string' ? new Date(v) : v;
+    return d instanceof Date && !isNaN(d.getTime()) ? d.toLocaleDateString() : String(v);
+  }
+
+  /** Badge color for progress history action type */
+  getHistoryActionClass(action: string): string {
+    const a = (action || '').toLowerCase();
+    if (a.includes('cancel') || a.includes('refund')) return 'bg-red-500';
+    if (a.includes('verified') || a.includes('submit')) return 'bg-green-600';
+    if (a.includes('date change')) return 'bg-blue-500';
+    if (a.includes('flight change')) return 'bg-indigo-500';
+    if (a.includes('seat')) return 'bg-amber-500';
+    return 'bg-[#0096D2]';
   }
 
   canCancel(): boolean {

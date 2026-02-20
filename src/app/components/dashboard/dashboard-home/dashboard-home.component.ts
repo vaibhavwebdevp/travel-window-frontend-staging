@@ -18,6 +18,20 @@ import { NotificationService, Notification } from '../../../services/notificatio
 
       <!-- Stats -->
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <!-- Skeleton loading -->
+        <ng-container *ngIf="loadingStats">
+          <div *ngFor="let i of [1,2,3,4,5]" class="skeleton-card">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <div class="skeleton-line w-20 h-3 mb-2"></div>
+                <div class="skeleton-line w-16 h-6"></div>
+              </div>
+              <div class="skeleton-circle w-12 h-12"></div>
+            </div>
+          </div>
+        </ng-container>
+        <!-- Actual stats -->
+        <ng-container *ngIf="!loadingStats">
         <div class="card hover:shadow-lg transition-shadow">
           <div class="flex items-center justify-between">
             <div>
@@ -86,6 +100,7 @@ import { NotificationService, Notification } from '../../../services/notificatio
           </div>
           <a [routerLink]="['/dashboard/admin/users']" class="text-xs text-[#0096D2] hover:underline mt-2 inline-block" *ngIf="isAdmin">Manage</a>
         </div>
+        </ng-container>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -97,7 +112,16 @@ import { NotificationService, Notification } from '../../../services/notificatio
             </svg>
             Notifications
           </h3>
-          <div class="space-y-2 max-h-80 overflow-y-auto">
+          <!-- Loading skeleton -->
+          <div *ngIf="loadingNotifications" class="space-y-2 max-h-80 overflow-y-auto">
+            <div *ngFor="let i of [1,2,3,4]" class="p-3 rounded-lg border border-gray-100">
+              <div class="skeleton-line w-3/4 h-4 mb-2"></div>
+              <div class="skeleton-line w-full h-3 mb-1"></div>
+              <div class="skeleton-line w-24 h-3"></div>
+            </div>
+          </div>
+          <!-- Actual notifications -->
+          <div *ngIf="!loadingNotifications" class="space-y-2 max-h-80 overflow-y-auto">
             <ng-container *ngIf="notifications.length > 0; else noNotifications">
               <a
                 *ngFor="let n of notifications.slice(0, 8)"
@@ -125,7 +149,19 @@ import { NotificationService, Notification } from '../../../services/notificatio
             </svg>
             Recent Activity
           </h3>
-          <div class="space-y-0 max-h-80 overflow-y-auto">
+          <!-- Loading skeleton -->
+          <div *ngIf="loadingActivity" class="space-y-0 max-h-80 overflow-y-auto">
+            <div *ngFor="let i of [1,2,3,4,5]" class="flex gap-3 py-3" [class.border-t]="i > 1" [class.border-gray-100]="i > 1">
+              <div class="skeleton-circle w-2 h-2 mt-2"></div>
+              <div class="flex-1">
+                <div class="skeleton-line w-3/4 h-4 mb-2"></div>
+                <div class="skeleton-line w-1/2 h-3 mb-1"></div>
+                <div class="skeleton-line w-20 h-3"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Actual activity -->
+          <div *ngIf="!loadingActivity" class="space-y-0 max-h-80 overflow-y-auto">
             <ng-container *ngIf="activity.length > 0; else noActivity">
               <div
                 *ngFor="let a of activity; let i = index"
@@ -161,6 +197,9 @@ export class DashboardHomeComponent implements OnInit {
   notifications: Notification[] = [];
   currentUserName = '';
   isAdmin = false;
+  loadingStats = true;
+  loadingActivity = true;
+  loadingNotifications = true;
 
   constructor(
     private dashboardService: DashboardService,
@@ -174,15 +213,30 @@ export class DashboardHomeComponent implements OnInit {
     this.isAdmin = this.authService.hasRole('ADMIN');
 
     this.dashboardService.getStats().subscribe({
-      next: (s: DashboardStats) => this.stats = s,
-      error: () => this.stats = null
+      next: (s: DashboardStats) => {
+        this.stats = s;
+        this.loadingStats = false;
+      },
+      error: () => {
+        this.stats = null;
+        this.loadingStats = false;
+      }
     });
 
     this.dashboardService.getActivity(15).subscribe({
-      next: (a: ActivityItem[]) => this.activity = a,
-      error: () => this.activity = []
+      next: (a: ActivityItem[]) => {
+        this.activity = a;
+        this.loadingActivity = false;
+      },
+      error: () => {
+        this.activity = [];
+        this.loadingActivity = false;
+      }
     });
 
-    this.notificationService.notifications$.subscribe((n: Notification[]) => this.notifications = n);
+    this.notificationService.notifications$.subscribe((n: Notification[]) => {
+      this.notifications = n;
+      this.loadingNotifications = false;
+    });
   }
 }

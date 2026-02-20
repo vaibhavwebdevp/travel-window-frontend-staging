@@ -96,4 +96,38 @@
   .toggle-active:hover {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 40%, #0ea5e9 100%) !important;
   }
+
+  /* Shimmer/Skeleton loading animation */
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  .shimmer {
+    animation: shimmer 2s infinite;
+    background: linear-gradient(
+      to right,
+      #f0f0f0 0%,
+      #e0e0e0 20%,
+      #f0f0f0 40%,
+      #f0f0f0 100%
+    );
+    background-size: 1000px 100%;
+  }
+
+  .skeleton-card {
+    @apply bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 shimmer;
+  }
+
+  .skeleton-line {
+    @apply h-4 bg-gray-200 rounded shimmer;
+  }
+
+  .skeleton-circle {
+    @apply rounded-full bg-gray-200 shimmer;
+  }
 }
