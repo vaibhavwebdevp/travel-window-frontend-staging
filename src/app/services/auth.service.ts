@@ -40,7 +40,9 @@ export class AuthService {
   login(email: string, password: string, rememberMe: boolean = true, recaptchaToken?: string): Observable<AuthResponse> {
     const body: { email: string; password: string; recaptchaToken?: string } = { email, password };
     if (recaptchaToken) body.recaptchaToken = recaptchaToken;
-    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, body)
+    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, body, {
+      withCredentials: true
+    })
       .pipe(
         tap(response => {
           const storage = this.getStorage(rememberMe);
@@ -57,7 +59,9 @@ export class AuthService {
   }
 
   getCurrentUser(): Observable<{ user: User }> {
-    return this.http.get<{ user: User }>(`${this.apiUrl}/auth/me`)
+    return this.http.get<{ user: User }>(`${this.apiUrl}/auth/me`, {
+      withCredentials: true
+    })
       .pipe(
         tap(response => {
           this.currentUserSubject.next(response.user);
