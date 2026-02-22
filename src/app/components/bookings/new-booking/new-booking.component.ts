@@ -14,12 +14,12 @@ import { ToastrService } from 'ngx-toastr';
   template: `
     <div class="max-w-6xl mx-auto">
       <div class="page-title-card">
-        <h2 class="page-title">{{ isAccountPaymentOnlyMode() ? 'Manage Payments' : (isAgent2CommercialOnly() ? 'Edit Commercial Details' : (isEditMode ? 'Edit Booking' : 'New Booking')) }}</h2>
+        <h2 class="page-title">{{ isEditMode ? 'Edit Booking' : 'New Booking' }}</h2>
       </div>
 
       <form [formGroup]="bookingForm" (ngSubmit)="onSubmit()" class="space-y-6">
-        <!-- Auto/System Fields: hidden for Account payment-only mode -->
-        <div class="card" *ngIf="!isAccountPaymentOnlyMode()">
+        <!-- Auto/System Fields -->
+        <div class="card">
           <h3 class="text-xl font-semibold mb-4 text-gray-700">System Information</h3>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -33,8 +33,8 @@ import { ToastrService } from 'ngx-toastr';
           </div>
         </div>
 
-        <!-- Passenger & Contact Details: hidden for Account payment-only mode -->
-        <div class="card" *ngIf="!isAccountPaymentOnlyMode()">
+        <!-- Passenger & Contact Details -->
+        <div class="card">
           <h3 class="text-xl font-semibold mb-4 text-gray-700">Passenger & Contact Details</h3>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -74,8 +74,8 @@ import { ToastrService } from 'ngx-toastr';
           </div>
         </div>
 
-        <!-- Travel Details: hidden for Account payment-only mode -->
-        <div class="card" *ngIf="!isAccountPaymentOnlyMode()">
+        <!-- Travel Details -->
+        <div class="card">
           <h3 class="text-xl font-semibold mb-4 text-gray-700">Travel Details</h3>
           <div class="space-y-4">
             <div>
@@ -183,8 +183,8 @@ import { ToastrService } from 'ngx-toastr';
           </div>
         </div>
 
-        <!-- Commercial Details: hidden for Account payment-only mode -->
-        <div class="card" *ngIf="!isAccountPaymentOnlyMode()">
+        <!-- Commercial Details -->
+        <div class="card">
           <h3 class="text-xl font-semibold mb-4 text-gray-700">Commercial Details</h3>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -221,9 +221,9 @@ import { ToastrService } from 'ngx-toastr';
           </div>
         </div>
 
-        <!-- Payment Details: only Account & Admin can see/edit; Agent1 & Agent2 cannot -->
-        <div class="card" *ngIf="canShowPaymentSection()">
-          <h3 class="text-xl font-semibold mb-4 text-gray-700">{{ isAccountPaymentOnlyMode() ? 'Manage Payments' : 'Payment Details' }}</h3>
+        <!-- Payment Details (Agent1, Agent2, Account, Admin can collect payments per spec) -->
+        <div class="card">
+          <h3 class="text-xl font-semibold mb-4 text-gray-700">Payment Details</h3>
           <div class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Payment Type</label>
@@ -288,7 +288,7 @@ import { ToastrService } from 'ngx-toastr';
         <div class="flex justify-end space-x-4">
           <button type="button" (click)="cancel()" class="btn btn-secondary">Cancel</button>
           <button type="submit" class="btn btn-primary">
-            {{ isAccountPaymentOnlyMode() ? 'Update Payments' : (isEditMode ? 'Update Booking' : 'Create Booking') }}
+            {{ isEditMode ? 'Update Booking' : 'Create Booking' }}
           </button>
         </div>
       </form>
@@ -531,56 +531,8 @@ export class NewBookingComponent implements OnInit {
           });
         }
 
-        if (this.isAgent2CommercialOnly()) {
-          this.disableNonCommercialForAgent2();
-        }
-        if (this.isAccountPaymentOnlyMode()) {
-          this.disableNonPaymentForAccount();
-        }
       }
     });
-  }
-
-  private disableNonPaymentForAccount(): void {
-    const paymentKeys = ['paymentType', 'payments'];
-    Object.keys(this.bookingForm.controls).forEach(key => {
-      if (!paymentKeys.includes(key)) {
-        this.bookingForm.get(key)?.disable();
-      }
-    });
-    this.multipleSectorsArray.controls.forEach(c => c.disable());
-  }
-
-  /** Agent2 in edit mode: can only change Supplier, Our Cost, Sale Price, Additional Service/Price */
-  isAgent2CommercialOnly(): boolean {
-    const user = this.authService.getCurrentUserValue();
-    return !!(user?.role === 'AGENT2' && this.isEditMode);
-  }
-
-  /** Payment section visible only to Admin (always) and Account (in edit mode). Agent1 & Agent2 never see it. */
-  canShowPaymentSection(): boolean {
-    const user = this.authService.getCurrentUserValue();
-    if (!user) return false;
-    if (user.role === 'ADMIN') return true;
-    if (user.role === 'ACCOUNT' && this.isEditMode) return true;
-    return false;
-  }
-
-  /** Account in edit mode: only manage payments (rest of form disabled) */
-  isAccountPaymentOnlyMode(): boolean {
-    const user = this.authService.getCurrentUserValue();
-    return !!(user?.role === 'ACCOUNT' && this.isEditMode);
-  }
-
-  private disableNonCommercialForAgent2(): void {
-    const commercial = ['supplier', 'ourCost', 'salePrice', 'additionalService', 'additionalServicePrice'];
-    Object.keys(this.bookingForm.controls).forEach(key => {
-      if (!commercial.includes(key)) {
-        this.bookingForm.get(key)?.disable();
-      }
-    });
-    this.multipleSectorsArray.controls.forEach(c => c.disable());
-    this.paymentsArray.controls.forEach(c => c.disable());
   }
 
   calculateTotals() {
@@ -604,46 +556,6 @@ export class NewBookingComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.isEditMode && this.bookingId && this.isAccountPaymentOnlyMode()) {
-      const formValue = this.bookingForm.value;
-      const payload = {
-        payments: (formValue.payments || []).map((p: any) => ({
-          ...p,
-          paymentDate: new Date(p.paymentDate)
-        }))
-      };
-      this.bookingService.updateBooking(this.bookingId, payload).subscribe({
-        next: () => {
-          this.toastr.success('Payments updated successfully', 'Success');
-          this.router.navigate(['/dashboard/bookings']);
-        },
-        error: (err) => {
-          this.toastr.error(err.error?.message || 'Failed to update payments', 'Error');
-        }
-      });
-      return;
-    }
-
-    if (this.isEditMode && this.bookingId && this.isAgent2CommercialOnly()) {
-      const payload = {
-        supplier: this.bookingForm.get('supplier')?.value || undefined,
-        ourCost: this.bookingForm.get('ourCost')?.value,
-        salePrice: this.bookingForm.get('salePrice')?.value,
-        additionalService: this.bookingForm.get('additionalService')?.value ?? undefined,
-        additionalServicePrice: this.bookingForm.get('additionalServicePrice')?.value ?? undefined
-      };
-      this.bookingService.updateBooking(this.bookingId, payload).subscribe({
-        next: () => {
-          this.toastr.success('Commercial details updated successfully', 'Success');
-          this.router.navigate(['/dashboard/bookings']);
-        },
-        error: (err) => {
-          this.toastr.error(err.error?.message || 'Failed to update booking', 'Error');
-        }
-      });
-      return;
-    }
-
     if (this.bookingForm.get('sectorType')?.value === 'Round Trip' && !this.bookingForm.get('returnDate')?.value) {
       this.bookingForm.get('returnDate')?.setErrors({ required: true });
       this.bookingForm.get('returnDate')?.markAsTouched();

@@ -668,30 +668,24 @@ export class BookingDetailComponent implements OnInit {
     return false;
   }
 
-  /** Edit: Admin all; Agent1 until verified; Agent2 commercial only until verified; Account payments only */
+  /** Edit: Admin/Account full; Agent1/Agent2 until verified (per spec all can add/edit) */
   canEdit(): boolean {
     if (!this.booking) return false;
     const user = this.authService.getCurrentUserValue();
     if (!user) return false;
     const verified = this.booking.verifiedByAccount || this.booking.verifiedByAdmin;
-    if (user.role === 'ADMIN') return true;
-    if (user.role === 'ACCOUNT') return this.booking.status !== 'Draft';
-    if (user.role === 'AGENT1') return !verified;
-    if (user.role === 'AGENT2') return this.booking.status !== 'Draft' && !verified;
+    if (user.role === 'ADMIN' || user.role === 'ACCOUNT') return this.booking.status !== 'Draft';
+    if (user.role === 'AGENT1' || user.role === 'AGENT2') return !verified;
     return false;
   }
 
-  /** Date Change: only Agents & Admin; Account does not do date/flight changes */
+  /** Date Change: Agent1, Agent2, Account, Admin (all can do per spec) */
   canDateChange(): boolean {
-    const user = this.authService.getCurrentUserValue();
-    if (user?.role === 'ACCOUNT') return false;
     return this.booking !== null && (!this.booking.cancellation || !this.booking.cancellation.isCancelled);
   }
 
-  /** Flight Change: only Agents & Admin; Account does not do date/flight changes */
+  /** Flight Change: Agent1, Agent2, Account, Admin (all can do per spec) */
   canFlightChange(): boolean {
-    const user = this.authService.getCurrentUserValue();
-    if (user?.role === 'ACCOUNT') return false;
     return this.booking !== null && (!this.booking.cancellation || !this.booking.cancellation.isCancelled);
   }
 
@@ -847,10 +841,10 @@ export class BookingDetailComponent implements OnInit {
     return 'bg-[#0096D2]';
   }
 
-  /** Payment-related fields (Total Paid, Balance, Billing Status, Payment History): only Account & Admin */
+  /** Payment-related fields: Agent1, Agent2, Account, Admin can all see (all can collect/manage payments per spec) */
   canSeePaymentInfo(): boolean {
     const user = this.authService.getCurrentUserValue();
-    return user?.role === 'ACCOUNT' || user?.role === 'ADMIN';
+    return !!user && ['AGENT1', 'AGENT2', 'ACCOUNT', 'ADMIN'].includes(user.role);
   }
 
   canCancel(): boolean {

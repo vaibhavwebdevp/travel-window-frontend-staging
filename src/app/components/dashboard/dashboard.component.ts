@@ -435,7 +435,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   canCreateBooking(): boolean {
-    return this.authService.hasAnyRole(['AGENT1', 'ADMIN']);
+    return this.authService.hasAnyRole(['AGENT1', 'AGENT2', 'ADMIN']);
   }
 
   canViewReports(): boolean {
