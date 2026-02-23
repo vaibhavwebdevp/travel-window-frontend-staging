@@ -432,7 +432,7 @@ import { ToastrService } from 'ngx-toastr';
           <form [formGroup]="cancelForm" (ngSubmit)="onCancel()">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Payment Mode Was <span class="text-red-500">*</span></label>
-              <select formControlName="paymentModeWas" class="input" required>
+              <select formControlName="paymentModeWas" class="input bg-gray-100 cursor-not-allowed" required>
                 <option value="">Select Payment Mode</option>
                 <option value="Cash">Cash</option>
                 <option value="Cheque">Cheque</option>
@@ -762,7 +762,24 @@ export class BookingDetailComponent implements OnInit {
         newOurCost: this.booking.ourCost,
         newSalePrice: this.booking.salePrice
       });
+      // Cancel form: auto-select Payment Mode Was from how customer paid; disable so it cannot be changed
+      const paymentModeWas = this.getPrimaryPaymentMode();
+      this.cancelForm.patchValue({
+        paymentModeWas: paymentModeWas || ''
+      });
+      this.cancelForm.get('paymentModeWas')?.disable();
     }
+  }
+
+  /** Primary payment mode from booking (customer's payment) – largest paidAmount, else first. */
+  getPrimaryPaymentMode(): string {
+    if (!this.booking?.payments?.length) return '';
+    const payments = this.booking.payments as { paidAmount?: number; paymentMode?: string }[];
+    const primary = payments.reduce((best, p) => {
+      const amount = typeof p.paidAmount === 'number' ? p.paidAmount : Number(p.paidAmount) || 0;
+      return !best || amount > (typeof best.paidAmount === 'number' ? best.paidAmount : Number(best.paidAmount) || 0) ? p : best;
+    }, payments[0]);
+    return primary?.paymentMode || '';
   }
 
   canVerify(): boolean {
@@ -1053,8 +1070,8 @@ export class BookingDetailComponent implements OnInit {
   }
 
   onCancel() {
-    if (this.cancelForm.valid && this.booking) {
-      const formValue = this.cancelForm.value;
+    const formValue = this.cancelForm.getRawValue();
+    if (this.cancelForm.valid && this.booking && formValue.paymentModeWas) {
       this.bookingService.cancelBooking(this.booking._id!, {
         paymentModeWas: formValue.paymentModeWas,
         refundableAmount: formValue.refundableAmount || 0,
