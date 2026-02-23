@@ -7,8 +7,10 @@ import { provideToastr } from 'ngx-toastr';
 import { routes } from './app/app.routes';
 import { authInterceptor } from './app/interceptors/auth.interceptor';
 import { injectSpeedInsights } from '@vercel/speed-insights';
+import { inject } from '@vercel/analytics';
 
 injectSpeedInsights();
+inject();
 
 bootstrapApplication(AppComponent, {
   providers: [
