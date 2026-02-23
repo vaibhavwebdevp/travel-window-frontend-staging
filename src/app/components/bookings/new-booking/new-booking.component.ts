@@ -39,12 +39,12 @@ import { ToastrService } from 'ngx-toastr';
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">PAX Name <span class="text-red-500">*</span></label>
-              <input type="text" formControlName="paxName" class="input" placeholder="Enter passenger name" [class.border-red-500]="bookingForm.get('paxName')?.invalid && bookingForm.get('paxName')?.touched" />
+              <input type="text" formControlName="paxName" class="input uppercase" placeholder="Enter passenger name" [class.border-red-500]="bookingForm.get('paxName')?.invalid && bookingForm.get('paxName')?.touched" />
               <p *ngIf="bookingForm.get('paxName')?.invalid && bookingForm.get('paxName')?.touched" class="text-red-500 text-xs mt-1">PAX name is required</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
-              <input type="text" formControlName="contactPerson" class="input" placeholder="Enter contact person" />
+              <input type="text" formControlName="contactPerson" class="input" placeholder="Enter contact person (Title case)" (blur)="applyTitleCase('contactPerson')" />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Contact Number <span class="text-red-500">*</span></label>
@@ -56,8 +56,8 @@ import { ToastrService } from 'ngx-toastr';
                   type="tel"
                   formControlName="contactNumber"
                   class="input flex-1"
-                  placeholder="e.g. 9876543210"
-                  maxlength="15"
+                  placeholder="e.g. 9876543210 (10 digits)"
+                  maxlength="10"
                   (input)="onContactNumberInput($event)"
                   [class.border-red-500]="bookingForm.get('contactNumber')?.invalid && bookingForm.get('contactNumber')?.touched"
                 />
@@ -104,12 +104,12 @@ import { ToastrService } from 'ngx-toastr';
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">From <span class="text-red-500">*</span></label>
-                <input type="text" formControlName="from" class="input" placeholder="Enter origin" [class.border-red-500]="bookingForm.get('from')?.invalid && bookingForm.get('from')?.touched" />
+                <input type="text" formControlName="from" class="input" placeholder="Enter origin" (blur)="applyCapitalize('from')" [class.border-red-500]="bookingForm.get('from')?.invalid && bookingForm.get('from')?.touched" />
                 <p *ngIf="bookingForm.get('from')?.invalid && bookingForm.get('from')?.touched" class="text-red-500 text-xs mt-1">Origin is required</p>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">To <span class="text-red-500">*</span></label>
-                <input type="text" formControlName="to" class="input" placeholder="Enter destination" [class.border-red-500]="bookingForm.get('to')?.invalid && bookingForm.get('to')?.touched" />
+                <input type="text" formControlName="to" class="input" placeholder="Enter destination" (blur)="applyCapitalize('to')" [class.border-red-500]="bookingForm.get('to')?.invalid && bookingForm.get('to')?.touched" />
                 <p *ngIf="bookingForm.get('to')?.invalid && bookingForm.get('to')?.touched" class="text-red-500 text-xs mt-1">Destination is required</p>
               </div>
             </div>
@@ -127,12 +127,12 @@ import { ToastrService } from 'ngx-toastr';
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">From <span class="text-red-500">*</span></label>
-                <input type="text" formControlName="from" class="input" placeholder="Enter origin" [class.border-red-500]="bookingForm.get('from')?.invalid && bookingForm.get('from')?.touched" />
+                <input type="text" formControlName="from" class="input" placeholder="Enter origin" (blur)="applyCapitalize('from')" [class.border-red-500]="bookingForm.get('from')?.invalid && bookingForm.get('from')?.touched" />
                 <p *ngIf="bookingForm.get('from')?.invalid && bookingForm.get('from')?.touched" class="text-red-500 text-xs mt-1">Origin is required</p>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">To <span class="text-red-500">*</span></label>
-                <input type="text" formControlName="to" class="input" placeholder="Enter destination" [class.border-red-500]="bookingForm.get('to')?.invalid && bookingForm.get('to')?.touched" />
+                <input type="text" formControlName="to" class="input" placeholder="Enter destination" (blur)="applyCapitalize('to')" [class.border-red-500]="bookingForm.get('to')?.invalid && bookingForm.get('to')?.touched" />
                 <p *ngIf="bookingForm.get('to')?.invalid && bookingForm.get('to')?.touched" class="text-red-500 text-xs mt-1">Destination is required</p>
               </div>
             </div>
@@ -145,11 +145,11 @@ import { ToastrService } from 'ngx-toastr';
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">From <span class="text-red-500">*</span></label>
-                  <input type="text" formControlName="from" class="input" placeholder="Enter origin" />
+                  <input type="text" formControlName="from" class="input" placeholder="Enter origin" (blur)="applyCapitalize('from')" />
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">To <span class="text-red-500">*</span></label>
-                  <input type="text" formControlName="to" class="input" placeholder="Enter destination" />
+                  <input type="text" formControlName="to" class="input" placeholder="Enter destination" (blur)="applyCapitalize('to')" />
                 </div>
               </div>
               <button type="button" (click)="addMultipleSector()" class="btn btn-secondary mb-4">Add More Sector</button>
@@ -162,11 +162,11 @@ import { ToastrService } from 'ngx-toastr';
                     </div>
                     <div>
                       <label class="block text-sm font-medium text-gray-700 mb-1">From</label>
-                      <input type="text" formControlName="from" class="input" />
+                      <input type="text" formControlName="from" class="input" (blur)="applyCapitalizeSectorFromTo(i, 'from')" />
                     </div>
                     <div>
                       <label class="block text-sm font-medium text-gray-700 mb-1">To</label>
-                      <input type="text" formControlName="to" class="input" />
+                      <input type="text" formControlName="to" class="input" (blur)="applyCapitalizeSectorFromTo(i, 'to')" />
                     </div>
                     <div class="flex items-end">
                       <button type="button" (click)="removeMultipleSector(i)" class="btn btn-danger">Remove</button>
@@ -206,13 +206,22 @@ import { ToastrService } from 'ngx-toastr';
               <label class="block text-sm font-medium text-gray-700 mb-1">Sale Price</label>
               <input type="number" formControlName="salePrice" class="input" placeholder="0" />
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Additional Service</label>
-              <input type="text" formControlName="additionalService" class="input" placeholder="Enter additional service" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Additional Service Price <span class="text-gray-400">(optional)</span></label>
-              <input type="number" formControlName="additionalServicePrice" class="input" placeholder="Leave blank if none" min="0" step="0.01" />
+            <div class="col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Additional Service</label>
+              <button type="button" (click)="addAdditionalService()" class="btn btn-secondary mb-3">Add Additional Service</button>
+              <div formArrayName="additionalServices" class="space-y-3">
+                <div *ngFor="let row of additionalServicesArray.controls; let i = index" [formGroupName]="i" class="flex flex-wrap items-end gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div class="flex-1 min-w-[120px]">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Service Name</label>
+                    <input type="text" formControlName="serviceName" class="input" placeholder="Service name" />
+                  </div>
+                  <div class="w-32">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Service Cost</label>
+                    <input type="number" formControlName="serviceCost" class="input" min="0" step="0.01" placeholder="0" />
+                  </div>
+                  <button type="button" (click)="removeAdditionalService(i)" class="btn btn-danger">Remove</button>
+                </div>
+              </div>
             </div>
             <div class="col-span-2">
               <label class="block text-sm font-medium text-gray-700 mb-1">Total Sale Price</label>
@@ -432,7 +441,7 @@ export class NewBookingComponent implements OnInit {
       paxName: ['', Validators.required],
       contactPerson: [''],
       countryCode: ['+91'],
-      contactNumber: ['', [Validators.required, Validators.pattern(/^\d{6,15}$/)]],
+      contactNumber: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
       pnr: ['', Validators.required],
       sectorType: ['One Way', Validators.required],
       travelDate: ['', Validators.required],
@@ -445,8 +454,7 @@ export class NewBookingComponent implements OnInit {
       supplier: [''],
       ourCost: [0],
       salePrice: [0],
-      additionalService: [''],
-      additionalServicePrice: [null as number | null],
+      additionalServices: this.fb.array([]),
       paymentType: ['Full'],
       payments: this.fb.array([])
     });
@@ -458,6 +466,21 @@ export class NewBookingComponent implements OnInit {
 
   get paymentsArray() {
     return this.bookingForm.get('payments') as FormArray;
+  }
+
+  get additionalServicesArray() {
+    return this.bookingForm.get('additionalServices') as FormArray;
+  }
+
+  addAdditionalService() {
+    this.additionalServicesArray.push(this.fb.group({
+      serviceName: [''],
+      serviceCost: [0]
+    }));
+  }
+
+  removeAdditionalService(index: number) {
+    this.additionalServicesArray.removeAt(index);
   }
 
   addMultipleSector() {
@@ -499,8 +522,9 @@ export class NewBookingComponent implements OnInit {
     this.bookingService.getBooking(id).subscribe({
       next: (booking) => {
         const { countryCode, localNumber } = this.parseContactNumber(booking.contactNumber || '');
+        const { payments: _p, multipleSectors: _s, additionalServices: _as, additionalService: _as1, additionalServicePrice: _as2, ...restBooking } = booking as any;
         this.bookingForm.patchValue({
-          ...booking,
+          ...restBooking,
           countryCode,
           contactNumber: (localNumber || '').replace(/\D/g, ''),
           travelDate: booking.travelDate ? new Date(booking.travelDate).toISOString().split('T')[0] : '',
@@ -508,6 +532,10 @@ export class NewBookingComponent implements OnInit {
           supplier: booking.supplier?._id || booking.supplier || ''
         });
 
+        // Clear and repopulate multipleSectors so we don't get duplicate/wrong rows
+        while (this.multipleSectorsArray.length) {
+          this.multipleSectorsArray.removeAt(0);
+        }
         if (booking.multipleSectors && booking.multipleSectors.length > 0) {
           booking.multipleSectors.forEach(sector => {
             const sectorGroup = this.fb.group({
@@ -519,18 +547,40 @@ export class NewBookingComponent implements OnInit {
           });
         }
 
+        // Clear and repopulate payments so saved values show correctly on first edit load
+        while (this.paymentsArray.length) {
+          this.paymentsArray.removeAt(0);
+        }
         if (booking.payments && booking.payments.length > 0) {
-          booking.payments.forEach(payment => {
-            const paymentGroup = this.fb.group({
-              paidAmount: payment.paidAmount,
-              paymentMode: payment.paymentMode,
-              paymentDate: new Date(payment.paymentDate).toISOString().split('T')[0],
-              referenceNo: payment.referenceNo || ''
-            });
-            this.paymentsArray.push(paymentGroup);
+          booking.payments.forEach((payment: any) => {
+            const d = payment.paymentDate ? new Date(payment.paymentDate) : null;
+            const dateStr = d && !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+            this.paymentsArray.push(this.fb.group({
+              paidAmount: [payment.paidAmount ?? 0, Validators.required],
+              paymentMode: [payment.paymentMode || 'Cash', Validators.required],
+              paymentDate: [dateStr, Validators.required],
+              referenceNo: [payment.referenceNo || '']
+            }));
           });
+        } else if (this.bookingForm.get('paymentType')?.value === 'Full') {
+          this.addPayment();
         }
 
+        if ((booking as any).additionalServices && (booking as any).additionalServices.length > 0) {
+          while (this.additionalServicesArray.length) this.additionalServicesArray.removeAt(0);
+          (booking as any).additionalServices.forEach((row: any) => {
+            this.additionalServicesArray.push(this.fb.group({
+              serviceName: [row.serviceName || ''],
+              serviceCost: [row.serviceCost ?? 0]
+            }));
+          });
+        } else if ((booking as any).additionalService) {
+          while (this.additionalServicesArray.length) this.additionalServicesArray.removeAt(0);
+          this.additionalServicesArray.push(this.fb.group({
+            serviceName: [(booking as any).additionalService || ''],
+            serviceCost: [(booking as any).additionalServicePrice ?? 0]
+          }));
+        }
       }
     });
   }
@@ -541,8 +591,9 @@ export class NewBookingComponent implements OnInit {
 
   get totalSalePrice(): number {
     const salePrice = this.bookingForm.get('salePrice')?.value || 0;
-    const additionalPrice = this.bookingForm.get('additionalServicePrice')?.value || 0;
-    return salePrice + additionalPrice;
+    const arr = this.additionalServicesArray?.controls || [];
+    const additionalTotal = arr.reduce((sum, c) => sum + (c.get('serviceCost')?.value || 0), 0);
+    return salePrice + additionalTotal;
   }
 
   get totalPaidAmount(): number {
@@ -584,19 +635,29 @@ export class NewBookingComponent implements OnInit {
       
       // Transform form data (exclude countryCode from payload; use combined contactNumber)
       const { countryCode, ...rest } = formValue;
+      const paymentsPayload = (formValue.payments || []).map((p: any) => {
+        const paidAmount = typeof p.paidAmount === 'number' ? p.paidAmount : parseFloat(p.paidAmount) || 0;
+        const rawDate = p.paymentDate;
+        const paymentDate = rawDate ? new Date(rawDate) : new Date();
+        const validDate = paymentDate instanceof Date && !isNaN(paymentDate.getTime()) ? paymentDate : new Date();
+        return {
+          paidAmount,
+          paymentMode: p.paymentMode || 'Cash',
+          paymentDate: validDate,
+          referenceNo: p.referenceNo || ''
+        };
+      });
+
       const bookingData: any = {
         ...rest,
         contactNumber: fullContactNumber.trim(),
         travelDate: new Date(formValue.travelDate),
         returnDate: formValue.returnDate ? new Date(formValue.returnDate) : null,
-        multipleSectors: formValue.multipleSectors.map((s: any) => ({
+        multipleSectors: (formValue.multipleSectors || []).map((s: any) => ({
           ...s,
           travelDate: s.travelDate ? new Date(s.travelDate) : null
         })),
-        payments: formValue.payments.map((p: any) => ({
-          ...p,
-          paymentDate: new Date(p.paymentDate)
-        }))
+        payments: paymentsPayload
       };
 
       if (this.isEditMode && this.bookingId) {
@@ -626,6 +687,38 @@ export class NewBookingComponent implements OnInit {
     this.router.navigate(['/dashboard/bookings']);
   }
 
+  /** Auto convert to Title case (Contact Person) per spec */
+  applyTitleCase(controlName: string) {
+    const c = this.bookingForm.get(controlName);
+    if (!c) return;
+    const v = (c.value || '').toString().trim();
+    if (!v) return;
+    const titleCase = v.replace(/\w\S*/g, (t: string) => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
+    if (titleCase !== v) c.setValue(titleCase, { emitEvent: false });
+  }
+
+  /** Auto Capital for From/To per spec */
+  applyCapitalize(controlName: string) {
+    const c = this.bookingForm.get(controlName);
+    if (!c) return;
+    const v = (c.value || '').toString().trim();
+    if (!v) return;
+    const cap = v.charAt(0).toUpperCase() + v.slice(1);
+    if (cap !== v) c.setValue(cap, { emitEvent: false });
+  }
+
+  /** Auto Capital for From/To in multiple sectors rows */
+  applyCapitalizeSectorFromTo(index: number, field: 'from' | 'to') {
+    const row = this.multipleSectorsArray.at(index);
+    if (!row) return;
+    const c = row.get(field);
+    if (!c) return;
+    const v = (c.value || '').toString().trim();
+    if (!v) return;
+    const cap = v.charAt(0).toUpperCase() + v.slice(1);
+    if (cap !== v) c.setValue(cap, { emitEvent: false });
+  }
+
   /** Allow only digits in contact number input */
   onContactNumberInput(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -640,7 +733,7 @@ export class NewBookingComponent implements OnInit {
     const c = this.bookingForm.get('contactNumber');
     if (!c?.errors) return 'Contact number is required';
     if (c.errors['required']) return 'Contact number is required';
-    if (c.errors['pattern']) return 'Contact number must be 6–15 digits only';
+    if (c.errors['pattern']) return 'Contact number must be 10 digits';
     return 'Invalid contact number';
   }
 

@@ -46,7 +46,7 @@ import { NotificationService, Notification } from '../../../services/notificatio
           </div>
           <a [routerLink]="['/dashboard/bookings']" class="text-xs text-[#0096D2] hover:underline mt-2 inline-block">View all</a>
         </div>
-        <div class="card hover:shadow-lg transition-shadow">
+        <div class="card hover:shadow-lg transition-shadow" *ngIf="showPendingVerificationCard()">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Pending Verification</p>
@@ -193,6 +193,11 @@ export class DashboardHomeComponent implements OnInit {
     private notificationService: NotificationService,
     private authService: AuthService
   ) {}
+
+  /** Agent 2 ko Pending Verification card nahi dikhana */
+  showPendingVerificationCard(): boolean {
+    return !this.authService.hasRole('AGENT2');
+  }
 
   ngOnInit() {
     const user = this.authService.getCurrentUserValue();

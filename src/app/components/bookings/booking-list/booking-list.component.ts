@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { BookingService, Booking } from '../../../services/booking.service';
 import { SupplierService, Supplier } from '../../../services/supplier.service';
@@ -23,6 +23,7 @@ import { AuthService } from '../../../services/auth.service';
             <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select formControlName="status" class="input">
               <option value="">All Status</option>
+              <option value="Pending Verification">Pending Verification</option>
               <option value="Ticked">Ticked</option>
               <option value="Unticketed">Unticketed</option>
               <option value="Cancelled">Cancelled</option>
@@ -175,7 +176,8 @@ export class BookingListComponent implements OnInit {
     private supplierService: SupplierService,
     private authService: AuthService,
     private fb: FormBuilder,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     this.filterForm = this.fb.group({
       status: [''],
@@ -187,6 +189,10 @@ export class BookingListComponent implements OnInit {
 
   ngOnInit() {
     this.loadSuppliers();
+    const q = this.route.snapshot.queryParams;
+    if (q['status']) {
+      this.filterForm.patchValue({ status: q['status'] });
+    }
     this.loadBookings();
   }
 

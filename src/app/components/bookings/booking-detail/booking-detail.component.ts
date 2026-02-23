@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule, FormArray } from '@angular/forms';
 import { BookingService, Booking } from '../../../services/booking.service';
 import { AuthService } from '../../../services/auth.service';
 import { ToastrService } from 'ngx-toastr';
@@ -84,7 +84,7 @@ import { ToastrService } from 'ngx-toastr';
                 <select [(ngModel)]="adminStatus" [ngModelOptions]="{standalone: true}" class="input max-w-xs">
                   <option *ngFor="let s of statusOptions" [value]="s">{{ s }}</option>
                 </select>
-                <button type="button" (click)="saveAdminStatus()" class="btn btn-primary" [disabled]="adminStatus === getDisplayStatus()">
+                <button type="button" (click)="saveAdminStatus()" class="btn btn-primary" [disabled]="(isAdmin() ? booking.status : getDisplayStatus()) === adminStatus">
                   Save status
                 </button>
               </div>
@@ -313,16 +313,17 @@ import { ToastrService } from 'ngx-toastr';
           </div>
         </div>
 
-        <!-- Date Change Form -->
+        <!-- Date Change Form (checkboxes only if date not past; payment rows per spec) -->
         <div *ngIf="showDateChangeForm" class="card bg-blue-50">
           <h3 class="text-xl font-semibold mb-4 text-gray-700">Date Change</h3>
+          <p class="text-sm text-gray-600 mb-2">Old Travel Date: {{ booking.travelDate | date:'shortDate' }} &nbsp;|&nbsp; Old Return Date: {{ booking.returnDate ? (booking.returnDate | date:'shortDate') : 'N/A' }} (not editable)</p>
           <form [formGroup]="dateChangeForm" (ngSubmit)="onDateChange()">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="flex items-center">
+              <div class="flex items-center" *ngIf="!isTravelDatePast()">
                 <input type="checkbox" formControlName="changeTravelDate" id="changeTravelDate" class="mr-2 h-4 w-4 rounded border-gray-300 accent-button focus:ring-2 focus:ring-button focus:ring-offset-0" />
                 <label for="changeTravelDate" class="text-sm font-medium text-gray-700">Change Travel Date</label>
               </div>
-              <div class="flex items-center">
+              <div class="flex items-center" *ngIf="booking?.returnDate && !isReturnDatePast()">
                 <input type="checkbox" formControlName="changeReturnDate" id="changeReturnDate" class="mr-2 h-4 w-4 rounded border-gray-300 accent-button focus:ring-2 focus:ring-button focus:ring-offset-0" />
                 <label for="changeReturnDate" class="text-sm font-medium text-gray-700">Change Return Date</label>
               </div>
@@ -343,6 +344,19 @@ import { ToastrService } from 'ngx-toastr';
                 <input type="number" formControlName="newSalePrice" class="input" step="0.01" />
               </div>
               <div class="col-span-full">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Payment</label>
+                <button type="button" (click)="addDateChangePayment()" class="btn btn-secondary mb-2">Add Payment</button>
+                <div formArrayName="payments" class="space-y-3">
+                  <div *ngFor="let p of dateChangePaymentsArray.controls; let i = index" [formGroupName]="i" class="flex flex-wrap items-end gap-3 p-3 bg-white rounded border">
+                    <div><label class="block text-xs text-gray-600 mb-1">Paid Amount</label><input type="number" formControlName="paidAmount" class="input" step="0.01" /></div>
+                    <div><label class="block text-xs text-gray-600 mb-1">Mode</label><select formControlName="paymentMode" class="input"><option value="Cash">Cash</option><option value="Cheque">Cheque</option><option value="Credit Card">Credit Card</option><option value="UPI">UPI</option><option value="Bank Transfer">Bank Transfer</option></select></div>
+                    <div><label class="block text-xs text-gray-600 mb-1">Date</label><input type="date" formControlName="paymentDate" class="input" /></div>
+                    <div><label class="block text-xs text-gray-600 mb-1">Reference No</label><input type="text" formControlName="referenceNo" class="input" /></div>
+                    <button type="button" (click)="removeDateChangePayment(i)" class="btn btn-danger">Remove</button>
+                  </div>
+                </div>
+              </div>
+              <div class="col-span-full">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Remarks <span class="text-red-500">*</span></label>
                 <textarea formControlName="remarks" class="input" rows="3" required></textarea>
               </div>
@@ -354,7 +368,7 @@ import { ToastrService } from 'ngx-toastr';
           </form>
         </div>
 
-        <!-- Flight Change Form -->
+        <!-- Flight Change Form (Our Cost/Sale Price optional; payment rows; remarks mandatory) -->
         <div *ngIf="showFlightChangeForm" class="card bg-blue-50">
           <h3 class="text-xl font-semibold mb-4 text-gray-700">Flight Change</h3>
           <form [formGroup]="flightChangeForm" (ngSubmit)="onFlightChange()">
@@ -379,6 +393,27 @@ import { ToastrService } from 'ngx-toastr';
                 <label class="block text-sm font-medium text-gray-700 mb-1">New Return Date</label>
                 <input type="date" formControlName="returnDate" class="input" />
               </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Our Cost (Optional)</label>
+                <input type="number" formControlName="newOurCost" class="input" step="0.01" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Sale Price (Optional)</label>
+                <input type="number" formControlName="newSalePrice" class="input" step="0.01" />
+              </div>
+              <div class="col-span-full">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Payment</label>
+                <button type="button" (click)="addFlightChangePayment()" class="btn btn-secondary mb-2">Add Payment</button>
+                <div formArrayName="payments" class="space-y-3">
+                  <div *ngFor="let p of flightChangePaymentsArray.controls; let i = index" [formGroupName]="i" class="flex flex-wrap items-end gap-3 p-3 bg-white rounded border">
+                    <div><label class="block text-xs text-gray-600 mb-1">Paid Amount</label><input type="number" formControlName="paidAmount" class="input" step="0.01" /></div>
+                    <div><label class="block text-xs text-gray-600 mb-1">Mode</label><select formControlName="paymentMode" class="input"><option value="Cash">Cash</option><option value="Cheque">Cheque</option><option value="Credit Card">Credit Card</option><option value="UPI">UPI</option><option value="Bank Transfer">Bank Transfer</option></select></div>
+                    <div><label class="block text-xs text-gray-600 mb-1">Date</label><input type="date" formControlName="paymentDate" class="input" /></div>
+                    <div><label class="block text-xs text-gray-600 mb-1">Reference No</label><input type="text" formControlName="referenceNo" class="input" /></div>
+                    <button type="button" (click)="removeFlightChangePayment(i)" class="btn btn-danger">Remove</button>
+                  </div>
+                </div>
+              </div>
               <div class="col-span-full">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Remarks <span class="text-red-500">*</span></label>
                 <textarea formControlName="remarks" class="input" rows="3" required></textarea>
@@ -391,51 +426,65 @@ import { ToastrService } from 'ngx-toastr';
           </form>
         </div>
 
-        <!-- Cancel Form -->
+        <!-- Cancel Form (Ticket Cancellation – Credit Card vs Non-Credit Card per spec) -->
         <div *ngIf="showCancelForm" class="card bg-red-50">
           <h3 class="text-xl font-semibold mb-4 text-red-700">Cancel Booking</h3>
           <form [formGroup]="cancelForm" (ngSubmit)="onCancel()">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Payment Mode Was <span class="text-red-500">*</span></label>
-                <select formControlName="paymentModeWas" class="input" required>
-                  <option value="">Select Payment Mode</option>
-                  <option value="Cash">Cash</option>
-                  <option value="Cheque">Cheque</option>
-                  <option value="Credit Card">Credit Card</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Refundable Amount</label>
-                <input type="number" formControlName="refundableAmount" class="input" step="0.01" />
-              </div>
-              <div *ngIf="cancelForm.get('paymentModeWas')?.value !== 'Credit Card'">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Committed to Client <span class="text-red-500">*</span></label>
-                <input type="number" formControlName="committedToClient" class="input" step="0.01" />
-              </div>
-              <div *ngIf="cancelForm.get('paymentModeWas')?.value === 'Credit Card'">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Charge from Client <span class="text-red-500">*</span></label>
-                <input type="number" formControlName="chargeFromClient" class="input" step="0.01" />
-              </div>
-              <div class="col-span-full">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Remarks <span class="text-red-500">*</span></label>
-                <textarea formControlName="remarks" class="input" rows="3" required></textarea>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Payment Mode Was <span class="text-red-500">*</span></label>
+              <select formControlName="paymentModeWas" class="input" required>
+                <option value="">Select Payment Mode</option>
+                <option value="Cash">Cash</option>
+                <option value="Cheque">Cheque</option>
+                <option value="Credit Card">Credit Card</option>
+              </select>
+            </div>
+
+            <!-- Credit Card flow -->
+            <div *ngIf="cancelForm.get('paymentModeWas')?.value === 'Credit Card'" class="mt-4 space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label class="block text-sm text-gray-600">Total Sale Price (Not Editable)</label><p class="font-semibold">{{ totalSalePriceForCancel | number:'1.2-2' }}</p></div>
+                <div><label class="block text-sm text-gray-600">Old Margin (Not Editable)</label><p class="font-semibold">{{ oldMargin | number:'1.2-2' }}</p></div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Supplier Cancellation Charges <span class="text-red-500">*</span></label>
+                  <input type="number" formControlName="supplierCancellationCharges" class="input" step="0.01" min="0" />
+                </div>
+                <div><label class="block text-sm text-gray-600">Refundable Amount To Client (Not Editable)</label><p class="font-semibold">{{ cancelRefundableToClient | number:'1.2-2' }}</p></div>
+                <div><label class="block text-sm text-gray-600">Current Margin (Not Editable)</label><p class="font-semibold">{{ cancelCurrentMargin | number:'1.2-2' }}</p></div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Any Charges From Client <span class="text-red-500">*</span></label>
+                  <input type="number" formControlName="chargeFromClient" class="input" step="0.01" min="0" />
+                </div>
+                <div><label class="block text-sm text-gray-600">New Margin (Not Editable)</label><p class="font-semibold">{{ newMargin | number:'1.2-2' }}</p></div>
+                <div><label class="block text-sm text-gray-600">Refund Committed To Client (Not Editable)</label><p class="font-semibold">{{ cancelRefundCommittedToClient | number:'1.2-2' }}</p></div>
               </div>
             </div>
-            <div class="mt-4">
-              <div class="bg-gray-100 p-4 rounded-lg mb-4">
-                <h4 class="font-semibold mb-2">Margin Calculation</h4>
-                <div class="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span class="text-gray-600">Old Margin:</span>
-                    <span class="font-medium ml-2">{{ oldMargin | number:'1.2-2' }}</span>
-                  </div>
-                  <div>
-                    <span class="text-gray-600">New Margin:</span>
-                    <span class="font-medium ml-2">{{ newMargin | number:'1.2-2' }}</span>
-                  </div>
+
+            <!-- Non–Credit Card flow -->
+            <div *ngIf="cancelForm.get('paymentModeWas')?.value && cancelForm.get('paymentModeWas')?.value !== 'Credit Card'" class="mt-4 space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label class="block text-sm text-gray-600">Total Sale Price (Not Editable)</label><p class="font-semibold">{{ totalSalePriceForCancel | number:'1.2-2' }}</p></div>
+                <div><label class="block text-sm text-gray-600">Our Old Margin (Not Editable)</label><p class="font-semibold">{{ oldMargin | number:'1.2-2' }}</p></div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Supplier Cancellation Charges <span class="text-red-500">*</span></label>
+                  <input type="number" formControlName="supplierCancellationCharges" class="input" step="0.01" min="0" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Our Cancellation Charges <span class="text-red-500">*</span></label>
+                  <input type="number" formControlName="ourCancellationCharges" class="input" step="0.01" min="0" />
+                </div>
+                <div><label class="block text-sm text-gray-600">Total Cancellation Charges (Not Editable)</label><p class="font-semibold">{{ cancelTotalCancellationCharges | number:'1.2-2' }}</p></div>
+                <div><label class="block text-sm text-gray-600">Refundable Amount Committed To Client (Not Editable)</label><p class="font-semibold">{{ cancelRefundableCommittedToClient | number:'1.2-2' }}</p></div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Refund Committed To Client <span class="text-red-500">*</span></label>
+                  <input type="number" formControlName="committedToClient" class="input" step="0.01" placeholder="Enter amount committed to client" />
                 </div>
               </div>
+            </div>
+
+            <div class="mt-4 col-span-full">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Remarks <span class="text-red-500">*</span></label>
+              <textarea formControlName="remarks" class="input" rows="3" required></textarea>
             </div>
             <div class="mt-4 flex justify-end space-x-2">
               <button type="button" (click)="showCancelForm = false" class="btn btn-secondary">Cancel</button>
@@ -513,7 +562,8 @@ export class BookingDetailComponent implements OnInit {
   flightChangeForm: FormGroup;
   cancelForm: FormGroup;
   adminStatus = '';
-  statusOptions = ['Ticked', 'Unticketed', 'Cancelled'];
+  /** Full status flow for Admin: Draft → … → Billed → Paid, plus Ticked/Unticketed/Cancelled */
+  statusOptions = ['Pending Verification', 'Account Verified', 'Admin Verified', 'Billed', 'Paid', 'Ticked', 'Unticketed', 'Cancelled'];
 
   constructor(
     private bookingService: BookingService,
@@ -530,6 +580,7 @@ export class BookingDetailComponent implements OnInit {
       newReturnDate: [''],
       newOurCost: [null],
       newSalePrice: [null],
+      payments: this.fb.array([]),
       remarks: ['', Validators.required]
     });
 
@@ -539,6 +590,9 @@ export class BookingDetailComponent implements OnInit {
       to: [''],
       travelDate: [''],
       returnDate: [''],
+      newOurCost: [null],
+      newSalePrice: [null],
+      payments: this.fb.array([]),
       remarks: ['', Validators.required]
     });
 
@@ -547,6 +601,8 @@ export class BookingDetailComponent implements OnInit {
       refundableAmount: [0],
       committedToClient: [null],
       chargeFromClient: [null],
+      supplierCancellationCharges: [0],
+      ourCancellationCharges: [0],
       remarks: ['', Validators.required]
     });
 
@@ -564,6 +620,60 @@ export class BookingDetailComponent implements OnInit {
     });
   }
 
+  get dateChangePaymentsArray(): FormArray {
+    return this.dateChangeForm.get('payments') as FormArray;
+  }
+
+  addDateChangePayment() {
+    this.dateChangePaymentsArray.push(this.fb.group({
+      paidAmount: [0],
+      paymentMode: ['Cash'],
+      paymentDate: [new Date().toISOString().split('T')[0]],
+      referenceNo: ['']
+    }));
+  }
+
+  removeDateChangePayment(i: number) {
+    this.dateChangePaymentsArray.removeAt(i);
+  }
+
+  get flightChangePaymentsArray(): FormArray {
+    return this.flightChangeForm.get('payments') as FormArray;
+  }
+
+  addFlightChangePayment() {
+    this.flightChangePaymentsArray.push(this.fb.group({
+      paidAmount: [0],
+      paymentMode: ['Cash'],
+      paymentDate: [new Date().toISOString().split('T')[0]],
+      referenceNo: ['']
+    }));
+  }
+
+  removeFlightChangePayment(i: number) {
+    this.flightChangePaymentsArray.removeAt(i);
+  }
+
+  /** True if travel date is before today (checkboxes only if not past per spec) */
+  isTravelDatePast(): boolean {
+    if (!this.booking?.travelDate) return false;
+    const t = new Date(this.booking.travelDate);
+    t.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return t < today;
+  }
+
+  /** True if return date is before today */
+  isReturnDatePast(): boolean {
+    if (!this.booking?.returnDate) return true;
+    const t = new Date(this.booking.returnDate);
+    t.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return t < today;
+  }
+
   ngOnInit() {
     this.route.params.subscribe(params => {
       if (params['id']) {
@@ -578,7 +688,7 @@ export class BookingDetailComponent implements OnInit {
     this.bookingService.getBooking(id).subscribe({
       next: (booking) => {
         this.booking = booking;
-        this.adminStatus = this.getDisplayStatus();
+        this.adminStatus = this.isAdmin() ? (booking.status || this.getDisplayStatus()) : this.getDisplayStatus();
         this.loading = false;
         this.initializeForms();
       },
@@ -608,12 +718,13 @@ export class BookingDetailComponent implements OnInit {
   }
 
   saveAdminStatus() {
-    if (!this.booking || this.adminStatus === this.getDisplayStatus()) return;
+    if (!this.booking) return;
+    const current = this.isAdmin() ? this.booking.status : this.getDisplayStatus();
+    if (this.adminStatus === current) return;
     const payload: any = { status: this.adminStatus };
     if (this.adminStatus === 'Cancelled') {
       payload.cancellation = { isCancelled: true };
     } else if (this.adminStatus === 'Ticked' || this.adminStatus === 'Unticketed') {
-      // Clear cancellation if setting to Ticked/Unticketed
       if (this.booking.cancellation?.isCancelled) {
         payload.cancellation = { isCancelled: false };
       }
@@ -850,7 +961,7 @@ export class BookingDetailComponent implements OnInit {
   canCancel(): boolean {
     if (!this.booking) return false;
     const user = this.authService.getCurrentUserValue();
-    if (user?.role !== 'ACCOUNT' && user?.role !== 'ADMIN') return false;
+    if (!user || !['AGENT1', 'AGENT2', 'ACCOUNT', 'ADMIN'].includes(user.role)) return false;
     return !this.booking.cancellation || !this.booking.cancellation.isCancelled;
   }
 
@@ -883,11 +994,28 @@ export class BookingDetailComponent implements OnInit {
   onDateChange() {
     if (this.dateChangeForm.valid && this.booking) {
       const formValue = this.dateChangeForm.value;
-      this.bookingService.dateChange(this.booking._id!, formValue).subscribe({
+      const paymentsPayload = (formValue.payments || []).map((p: any) => ({
+        paidAmount: typeof p.paidAmount === 'number' ? p.paidAmount : parseFloat(p.paidAmount) || 0,
+        paymentMode: p.paymentMode || 'Cash',
+        paymentDate: p.paymentDate ? new Date(p.paymentDate) : new Date(),
+        referenceNo: p.referenceNo || ''
+      }));
+      const payload = {
+        changeTravelDate: formValue.changeTravelDate,
+        changeReturnDate: formValue.changeReturnDate,
+        newTravelDate: formValue.newTravelDate,
+        newReturnDate: formValue.newReturnDate,
+        newOurCost: formValue.newOurCost,
+        newSalePrice: formValue.newSalePrice,
+        payments: paymentsPayload,
+        remarks: formValue.remarks
+      };
+      this.bookingService.dateChange(this.booking._id!, payload).subscribe({
         next: () => {
           this.showDateChangeForm = false;
           this.loadBooking(this.booking!._id!);
-        }
+        },
+        error: (err) => this.toastr.error(err?.error?.message || 'Date change failed', 'Error')
       });
     }
   }
@@ -901,15 +1029,25 @@ export class BookingDetailComponent implements OnInit {
       if (formValue.to) newDetails.to = formValue.to;
       if (formValue.travelDate) newDetails.travelDate = formValue.travelDate;
       if (formValue.returnDate) newDetails.returnDate = formValue.returnDate;
+      const paymentsPayload = (formValue.payments || []).map((p: any) => ({
+        paidAmount: typeof p.paidAmount === 'number' ? p.paidAmount : parseFloat(p.paidAmount) || 0,
+        paymentMode: p.paymentMode || 'Cash',
+        paymentDate: p.paymentDate ? new Date(p.paymentDate) : new Date(),
+        referenceNo: p.referenceNo || ''
+      }));
 
       this.bookingService.flightChange(this.booking._id!, {
         newDetails,
+        newOurCost: formValue.newOurCost,
+        newSalePrice: formValue.newSalePrice,
+        payments: paymentsPayload,
         remarks: formValue.remarks
       }).subscribe({
         next: () => {
           this.showFlightChangeForm = false;
           this.loadBooking(this.booking!._id!);
-        }
+        },
+        error: (err) => this.toastr.error(err?.error?.message || 'Flight change failed', 'Error')
       });
     }
   }
@@ -922,12 +1060,15 @@ export class BookingDetailComponent implements OnInit {
         refundableAmount: formValue.refundableAmount || 0,
         committedToClient: formValue.committedToClient,
         chargeFromClient: formValue.chargeFromClient,
+        supplierCancellationCharges: formValue.supplierCancellationCharges ?? 0,
+        ourCancellationCharges: formValue.ourCancellationCharges ?? 0,
         remarks: formValue.remarks
       }).subscribe({
         next: () => {
           this.showCancelForm = false;
           this.loadBooking(this.booking!._id!);
-        }
+        },
+        error: (err) => this.toastr.error(err?.error?.message || 'Cancellation failed', 'Error')
       });
     }
   }
@@ -947,14 +1088,45 @@ export class BookingDetailComponent implements OnInit {
     return (this.booking.salePrice || 0) - (this.booking.ourCost || 0);
   }
 
+  get totalSalePriceForCancel(): number {
+    return (this.booking?.totalSalePrice || this.booking?.salePrice || 0) as number;
+  }
+
+  get cancelRefundableToClient(): number {
+    const scc = this.cancelForm?.get('supplierCancellationCharges')?.value ?? 0;
+    return this.totalSalePriceForCancel - scc;
+  }
+
+  get cancelCurrentMargin(): number {
+    const scc = this.cancelForm?.get('supplierCancellationCharges')?.value ?? 0;
+    const refundable = this.cancelRefundableToClient;
+    return this.oldMargin + scc + refundable - this.totalSalePriceForCancel;
+  }
+
+  get cancelRefundCommittedToClient(): number {
+    const scc = this.cancelForm?.get('supplierCancellationCharges')?.value ?? 0;
+    const charge = this.cancelForm?.get('chargeFromClient')?.value ?? 0;
+    return this.totalSalePriceForCancel - scc - charge;
+  }
+
+  get cancelTotalCancellationCharges(): number {
+    const scc = this.cancelForm?.get('supplierCancellationCharges')?.value ?? 0;
+    const occ = this.cancelForm?.get('ourCancellationCharges')?.value ?? 0;
+    return this.oldMargin + scc + occ;
+  }
+
+  get cancelRefundableCommittedToClient(): number {
+    return this.totalSalePriceForCancel - this.cancelTotalCancellationCharges;
+  }
+
   get newMargin(): number {
     if (!this.booking || !this.cancelForm) return 0;
     const formValue = this.cancelForm.value;
     const paymentMode = formValue.paymentModeWas;
-    
+
     if (paymentMode === 'Credit Card') {
       const chargeFromClient = formValue.chargeFromClient || 0;
-      return (this.booking.salePrice || 0) - chargeFromClient;
+      return chargeFromClient + this.cancelCurrentMargin;
     } else {
       const committedToClient = formValue.committedToClient || 0;
       return (this.booking.salePrice || 0) - committedToClient;
