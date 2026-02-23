@@ -6,6 +6,9 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideToastr } from 'ngx-toastr';
 import { routes } from './app/app.routes';
 import { authInterceptor } from './app/interceptors/auth.interceptor';
+import { injectSpeedInsights } from '@vercel/speed-insights';
+
+injectSpeedInsights();
 
 bootstrapApplication(AppComponent, {
   providers: [
