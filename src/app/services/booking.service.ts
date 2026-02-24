@@ -34,6 +34,7 @@ export interface Booking {
   status?: string;
   verifiedByAccount?: boolean;
   verifiedByAdmin?: boolean;
+  assignedTo?: { _id: string; name: string; email?: string };
   progressHistory?: any[];
   dateChanges?: any[];
   flightChanges?: any[];
@@ -116,5 +117,9 @@ export class BookingService {
 
   processRefund(id: string): Observable<Booking> {
     return this.http.post<Booking>(`${this.apiUrl}/bookings/${id}/process-refund`, {});
+  }
+
+  assignBooking(id: string, assignToUserId: string, comment?: string): Observable<Booking> {
+    return this.http.post<Booking>(`${this.apiUrl}/bookings/${id}/assign`, { assignToUserId, comment });
   }
 }

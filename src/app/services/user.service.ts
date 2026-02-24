@@ -29,6 +29,11 @@ export class UserService {
     return this.http.get<User[]>(`${this.apiUrl}/users/agents`);
   }
 
+  /** Users current role can assign a booking to (Account/Agent2/Admin only) */
+  getAssignableUsers(): Observable<User[]> {
+    return this.http.get<User[]>(`${this.apiUrl}/users/assignable`);
+  }
+
   createUser(user: User & { password: string }): Observable<User> {
     return this.http.post<User>(`${this.apiUrl}/users`, user);
   }

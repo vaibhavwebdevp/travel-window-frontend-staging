@@ -60,7 +60,7 @@ import { NotificationService, Notification } from '../../../services/notificatio
           </div>
           <a [routerLink]="['/dashboard/bookings']" [queryParams]="{ status: 'Pending Verification' }" class="text-xs text-[#0096D2] hover:underline mt-2 inline-block">View</a>
         </div>
-        <div class="card hover:shadow-lg transition-shadow">
+        <a [routerLink]="['/dashboard/bookings']" [queryParams]="{ status: 'Unticketed' }" class="card hover:shadow-lg transition-shadow block">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Unticketed</p>
@@ -72,7 +72,8 @@ import { NotificationService, Notification } from '../../../services/notificatio
               </svg>
             </div>
           </div>
-        </div>
+          <span class="text-xs text-[#0096D2] hover:underline mt-2 inline-block">View</span>
+        </a>
         <div class="card hover:shadow-lg transition-shadow" *ngIf="stats?.totalUsers !== undefined">
           <div class="flex items-center justify-between">
             <div>

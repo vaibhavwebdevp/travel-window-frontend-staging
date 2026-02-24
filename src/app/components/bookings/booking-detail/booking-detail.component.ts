@@ -4,6 +4,7 @@ import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule, FormArray } from '@angular/forms';
 import { BookingService, Booking } from '../../../services/booking.service';
 import { AuthService } from '../../../services/auth.service';
+import { UserService, User } from '../../../services/user.service';
 import { ToastrService } from 'ngx-toastr';
 
 @Component({
@@ -96,6 +97,10 @@ import { ToastrService } from 'ngx-toastr';
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">Submitted By</label>
               <p class="text-gray-900">{{ booking.submittedByName }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-500 mb-1">Assigned To</label>
+              <p class="text-gray-900">{{ booking.assignedTo?.name || '–' }}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">Supplier</label>
@@ -205,6 +210,28 @@ import { ToastrService } from 'ngx-toastr';
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+
+        <!-- Assign (Account → Agent1/Agent2; Agent2 → Agent1; Admin → Agent1/Agent2/Account) -->
+        <div *ngIf="canAssign()" class="card">
+          <h3 class="text-xl font-semibold mb-4 text-gray-700">Assign</h3>
+          <p class="text-sm text-gray-600 mb-3">Assign this booking to another user with an optional comment.</p>
+          <div class="flex flex-wrap items-end gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Assign to</label>
+              <select [(ngModel)]="assignToUserId" class="input" [ngModelOptions]="{standalone: true}">
+                <option value="">Select user</option>
+                <option *ngFor="let u of assignableUsers" [value]="u._id">{{ u.name }} ({{ u.role }})</option>
+              </select>
+            </div>
+            <div class="flex-1 min-w-[200px]">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Comment (optional)</label>
+              <input type="text" [(ngModel)]="assignComment" placeholder="e.g. Please finalise ticket" class="input w-full" [ngModelOptions]="{standalone: true}" />
+            </div>
+            <button type="button" (click)="onAssign()" class="btn btn-primary" [disabled]="!assignToUserId || assigning">
+              {{ assigning ? 'Assigning...' : 'Assign' }}
+            </button>
           </div>
         </div>
 
@@ -564,10 +591,15 @@ export class BookingDetailComponent implements OnInit {
   adminStatus = '';
   /** Full status flow for Admin: Draft → … → Billed → Paid, plus Ticked/Unticketed/Cancelled */
   statusOptions = ['Pending Verification', 'Account Verified', 'Admin Verified', 'Billed', 'Paid', 'Ticked', 'Unticketed', 'Cancelled'];
+  assignableUsers: User[] = [];
+  assignToUserId = '';
+  assignComment = '';
+  assigning = false;
 
   constructor(
     private bookingService: BookingService,
     private authService: AuthService,
+    private userService: UserService,
     private route: ActivatedRoute,
     private router: Router,
     private fb: FormBuilder,
@@ -691,6 +723,12 @@ export class BookingDetailComponent implements OnInit {
         this.adminStatus = this.isAdmin() ? (booking.status || this.getDisplayStatus()) : this.getDisplayStatus();
         this.loading = false;
         this.initializeForms();
+        if (this.canAssign()) {
+          this.userService.getAssignableUsers().subscribe({
+            next: (users) => { this.assignableUsers = users; },
+            error: () => { this.assignableUsers = []; }
+          });
+        }
       },
       error: (err) => {
         this.loading = false;
@@ -973,6 +1011,28 @@ export class BookingDetailComponent implements OnInit {
   canSeePaymentInfo(): boolean {
     const user = this.authService.getCurrentUserValue();
     return !!user && ['AGENT1', 'AGENT2', 'ACCOUNT', 'ADMIN'].includes(user.role);
+  }
+
+  /** Account can assign to Agent1/Agent2; Agent2 to Agent1; Admin to Agent1/Agent2/Account */
+  canAssign(): boolean {
+    return this.authService.hasRole('ACCOUNT') || this.authService.hasRole('AGENT2') || this.authService.hasRole('ADMIN');
+  }
+
+  onAssign() {
+    if (!this.booking?._id || !this.assignToUserId) return;
+    this.assigning = true;
+    this.bookingService.assignBooking(this.booking._id, this.assignToUserId, this.assignComment || undefined).subscribe({
+      next: () => {
+        this.assigning = false;
+        this.assignComment = '';
+        this.toastr.success('Booking assigned successfully');
+        this.loadBooking(this.booking!._id!);
+      },
+      error: (err) => {
+        this.assigning = false;
+        this.toastr.error(err?.error?.message || 'Assign failed', 'Error');
+      }
+    });
   }
 
   canCancel(): boolean {
