@@ -344,6 +344,16 @@ import { ToastrService } from 'ngx-toastr';
         <div *ngIf="showDateChangeForm" class="card bg-blue-50">
           <h3 class="text-xl font-semibold mb-4 text-gray-700">Date Change</h3>
           <p class="text-sm text-gray-600 mb-2">Old Travel Date: {{ booking.travelDate | date:'shortDate' }} &nbsp;|&nbsp; Old Return Date: {{ booking.returnDate ? (booking.returnDate | date:'shortDate') : 'N/A' }} (not editable)</p>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 p-3 bg-white rounded border">
+            <div>
+              <label class="block text-sm font-medium text-gray-500 mb-1">Original Our Booking Price</label>
+              <p class="font-semibold text-gray-900">{{ booking.ourCost | number:'1.2-2' }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-500 mb-1">Original Sale Booking Price</label>
+              <p class="font-semibold text-gray-900">{{ booking.salePrice | number:'1.2-2' }}</p>
+            </div>
+          </div>
           <form [formGroup]="dateChangeForm" (ngSubmit)="onDateChange()">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="flex items-center" *ngIf="!isTravelDatePast()">
@@ -363,11 +373,11 @@ import { ToastrService } from 'ngx-toastr';
                 <input type="date" formControlName="newReturnDate" class="input" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">New Our Cost</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Now Date Change Our Cost</label>
                 <input type="number" formControlName="newOurCost" class="input" step="0.01" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">New Sale Price</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Now Date Change Sale Cost</label>
                 <input type="number" formControlName="newSalePrice" class="input" step="0.01" />
               </div>
               <div class="col-span-full">
@@ -501,10 +511,10 @@ import { ToastrService } from 'ngx-toastr';
                   <input type="number" formControlName="ourCancellationCharges" class="input" step="0.01" min="0" />
                 </div>
                 <div><label class="block text-sm text-gray-600">Total Cancellation Charges (Not Editable)</label><p class="font-semibold">{{ cancelTotalCancellationCharges | number:'1.2-2' }}</p></div>
-                <div><label class="block text-sm text-gray-600">Refundable Amount Committed To Client (Not Editable)</label><p class="font-semibold">{{ cancelRefundableCommittedToClient | number:'1.2-2' }}</p></div>
+                <div><label class="block text-sm text-gray-600">Refundable Amount from Supplier (Not Editable)</label><p class="font-semibold">{{ cancelRefundableCommittedToClient | number:'1.2-2' }}</p></div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Refund Committed To Client <span class="text-red-500">*</span></label>
-                  <input type="number" formControlName="committedToClient" class="input" step="0.01" placeholder="Enter amount committed to client" />
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Refundable Amount from Supplier <span class="text-red-500">*</span></label>
+                  <input type="number" formControlName="committedToClient" class="input" step="0.01" placeholder="Enter amount" />
                 </div>
               </div>
             </div>
@@ -725,7 +735,13 @@ export class BookingDetailComponent implements OnInit {
         this.initializeForms();
         if (this.canAssign()) {
           this.userService.getAssignableUsers().subscribe({
-            next: (users) => { this.assignableUsers = users; },
+            next: (users) => {
+              this.assignableUsers = users;
+              const createdById = (this.booking?.submittedBy as any)?._id || (this.booking?.submittedBy as any)?.id;
+              if (createdById && this.assignableUsers.some(u => u._id === createdById)) {
+                this.assignToUserId = createdById;
+              }
+            },
             error: () => { this.assignableUsers = []; }
           });
         }
@@ -824,9 +840,9 @@ export class BookingDetailComponent implements OnInit {
     if (!this.booking) return false;
     const user = this.authService.getCurrentUserValue();
     if (!user) return false;
-    
+
     if (user.role === 'ACCOUNT' && !this.booking.verifiedByAccount) {
-      return this.booking.status === 'Pending Verification' || this.booking.status === 'Unticketed';
+      return this.booking.status === 'Ticked';
     }
     if (user.role === 'ADMIN' && !this.booking.verifiedByAdmin) {
       return this.booking.status !== 'Billed' && this.booking.status !== 'Paid';
@@ -1175,6 +1191,13 @@ export class BookingDetailComponent implements OnInit {
   }
 
   get cancelCurrentMargin(): number {
+    if (!this.booking) return 0;
+    const paymentMode = this.cancelForm?.get('paymentModeWas')?.value;
+    if (paymentMode === 'Credit Card') {
+      const charge = this.cancelForm?.get('chargeFromClient')?.value ?? 0;
+      const oldCost = this.booking.ourCost ?? 0;
+      return Number(charge) - Number(oldCost);
+    }
     const scc = this.cancelForm?.get('supplierCancellationCharges')?.value ?? 0;
     const refundable = this.cancelRefundableToClient;
     return this.oldMargin + scc + refundable - this.totalSalePriceForCancel;

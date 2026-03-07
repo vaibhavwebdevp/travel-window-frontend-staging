@@ -18,8 +18,16 @@ import { AuthService } from '../../../services/auth.service';
 
       <!-- Filters -->
       <div class="card mb-6">
-        <form [formGroup]="filterForm" class="grid grid-cols-1 gap-4" [class.md:grid-cols-4]="showStatusFilter()" [class.md:grid-cols-3]="!showStatusFilter()">
-          <div *ngIf="showStatusFilter()">
+        <form [formGroup]="filterForm" class="grid grid-cols-1 gap-4" [class.md:grid-cols-4]="showStatusFilter() && !isAccount()" [class.md:grid-cols-3]="!showStatusFilter() || isAccount()">
+          <div *ngIf="isAccount()">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Filter</label>
+            <select formControlName="verified" class="input">
+              <option value="">All</option>
+              <option value="verified">Verified</option>
+              <option value="unverified">Unverified</option>
+            </select>
+          </div>
+          <div *ngIf="showStatusFilter() && !isAccount()">
             <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select formControlName="status" class="input">
               <option value="">All Status</option>
@@ -29,7 +37,7 @@ import { AuthService } from '../../../services/auth.service';
               <option value="Cancelled">Cancelled</option>
             </select>
           </div>
-          <div>
+          <div *ngIf="!isAccount()">
             <label class="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
             <select formControlName="supplier" class="input" [disabled]="loadingSuppliers">
               <option value="">All Suppliers</option>
@@ -39,11 +47,19 @@ import { AuthService } from '../../../services/auth.service';
               <div class="skeleton-line w-full h-10"></div>
             </div>
           </div>
-          <div>
+          <div *ngIf="!isAccount()">
             <label class="block text-sm font-medium text-gray-700 mb-1">Date From</label>
             <input type="date" formControlName="dateFrom" class="input" />
           </div>
-          <div>
+          <div *ngIf="!isAccount()">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date To</label>
+            <input type="date" formControlName="dateTo" class="input" />
+          </div>
+          <div *ngIf="isAccount()">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date From</label>
+            <input type="date" formControlName="dateFrom" class="input" />
+          </div>
+          <div *ngIf="isAccount()">
             <label class="block text-sm font-medium text-gray-700 mb-1">Date To</label>
             <input type="date" formControlName="dateTo" class="input" />
           </div>
@@ -62,6 +78,7 @@ import { AuthService } from '../../../services/auth.service';
             <thead class="bg-gray-50">
               <tr>
                 <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PNR</th>
+                <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created Date</th>
                 <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Passenger</th>
                 <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Contact</th>
                 <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -73,6 +90,7 @@ import { AuthService } from '../../../services/auth.service';
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               <tr *ngFor="let i of [1,2,3,4,5]" class="animate-pulse">
+                <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap"><div class="skeleton-line w-20 h-4"></div></td>
                 <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap"><div class="skeleton-line w-20 h-4"></div></td>
                 <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap"><div class="skeleton-line w-24 h-4"></div></td>
                 <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell"><div class="skeleton-line w-20 h-4"></div></td>
@@ -89,6 +107,7 @@ import { AuthService } from '../../../services/auth.service';
           <thead class="bg-gray-50">
             <tr>
               <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PNR</th>
+              <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created Date</th>
               <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Passenger</th>
               <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Contact</th>
               <th class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -101,6 +120,7 @@ import { AuthService } from '../../../services/auth.service';
           <tbody class="bg-white divide-y divide-gray-200">
             <tr *ngFor="let booking of bookings" class="hover:bg-gray-50">
               <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">{{ booking.pnr }}</td>
+              <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">{{ booking.dateOfSubmission | date:'shortDate' }}</td>
               <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">{{ booking.paxName }}</td>
               <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900 hidden sm:table-cell">{{ booking.contactNumber }}</td>
               <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
@@ -118,16 +138,12 @@ import { AuthService } from '../../../services/auth.service';
                 {{ booking.balanceAmount | number:'1.2-2' }}
               </td>
               <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
-                <button 
-                  [routerLink]="['/dashboard/bookings', booking._id]" 
-                  class="text-primary-600 hover:text-primary-900"
-                >
-                  View
-                </button>
+                <a [routerLink]="['/dashboard/bookings', booking._id]" class="text-primary-600 hover:text-primary-900 mr-2">View</a>
+                <a [routerLink]="['/dashboard/bookings', booking._id]" class="text-primary-600 hover:text-primary-900">Edit</a>
               </td>
             </tr>
             <tr *ngIf="bookings.length === 0">
-              <td colspan="8" class="px-6 py-4 text-center text-gray-500">No bookings found</td>
+              <td colspan="9" class="px-6 py-4 text-center text-gray-500">No bookings found</td>
             </tr>
           </tbody>
         </table>
@@ -181,10 +197,16 @@ export class BookingListComponent implements OnInit {
   ) {
     this.filterForm = this.fb.group({
       status: [''],
+      verified: [''],
       supplier: [''],
       dateFrom: [''],
       dateTo: ['']
     });
+  }
+
+  isAccount(): boolean {
+    const user = this.authService.getCurrentUserValue();
+    return user?.role === 'ACCOUNT';
   }
 
   ngOnInit() {
@@ -192,6 +214,9 @@ export class BookingListComponent implements OnInit {
     const q = this.route.snapshot.queryParams;
     if (q['status']) {
       this.filterForm.patchValue({ status: q['status'] });
+    }
+    if (q['verified']) {
+      this.filterForm.patchValue({ verified: q['verified'] });
     }
     this.loadBookings();
   }
@@ -223,6 +248,7 @@ export class BookingListComponent implements OnInit {
 
     const filters = this.filterForm.value;
     if (filters.status) params.status = filters.status;
+    if (this.isAccount() && filters.verified) params.verified = filters.verified;
     if (filters.supplier) params.supplier = filters.supplier;
     if (filters.dateFrom) params.dateFrom = filters.dateFrom;
     if (filters.dateTo) params.dateTo = filters.dateTo;
