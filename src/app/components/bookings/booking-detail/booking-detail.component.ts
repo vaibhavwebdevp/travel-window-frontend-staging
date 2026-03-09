@@ -100,7 +100,7 @@ import { ToastrService } from 'ngx-toastr';
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">Assigned To</label>
-              <p class="text-gray-900">{{ booking.assignedTo?.name || '–' }}</p>
+              <p class="text-gray-900">{{ getAssignedToDisplay() }}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">Supplier</label>
@@ -340,11 +340,20 @@ import { ToastrService } from 'ngx-toastr';
           </div>
         </div>
 
-        <!-- Date Change Form (checkboxes only if date not past; payment rows per spec) -->
+        <!-- Date Change Form: Old dates not editable; two checkboxes only if date not past; Our Cost / Sale Price (add-on); Payment rows; Remarks mandatory -->
         <div *ngIf="showDateChangeForm" class="card bg-blue-50">
           <h3 class="text-xl font-semibold mb-4 text-gray-700">Date Change</h3>
-          <p class="text-sm text-gray-600 mb-2">Old Travel Date: {{ booking.travelDate | date:'shortDate' }} &nbsp;|&nbsp; Old Return Date: {{ booking.returnDate ? (booking.returnDate | date:'shortDate') : 'N/A' }} (not editable)</p>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 p-3 bg-white rounded border">
+          <!-- Old Travel & Return Date – not editable -->
+          <div class="mb-4 p-3 bg-gray-100 rounded border border-gray-200">
+            <p class="text-sm font-medium text-gray-600 mb-1">Old Travel Date &amp; Old Return Date (not editable)</p>
+            <p class="text-gray-900">
+              <span class="font-semibold">Travel:</span> {{ booking.travelDate | date:'shortDate' }}
+              <span class="mx-2">|</span>
+              <span class="font-semibold">Return:</span> {{ booking.returnDate ? (booking.returnDate | date:'shortDate') : 'N/A' }}
+            </p>
+          </div>
+          <!-- Original (read-only) -->
+          <div class="grid grid-cols-2 md:grid-cols-2 gap-4 mb-4 p-3 bg-white rounded border">
             <div>
               <label class="block text-sm font-medium text-gray-500 mb-1">Original Our Booking Price</label>
               <p class="font-semibold text-gray-900">{{ booking.ourCost | number:'1.2-2' }}</p>
@@ -356,6 +365,16 @@ import { ToastrService } from 'ngx-toastr';
           </div>
           <form [formGroup]="dateChangeForm" (ngSubmit)="onDateChange()">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Editable: Our Cost, Sale Price (add-on) -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Now Date Change Our Cost</label>
+                <input type="number" formControlName="newOurCost" class="input" step="0.01" placeholder="Add-on amount" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Now Date Change Sale Cost</label>
+                <input type="number" formControlName="newSalePrice" class="input" step="0.01" placeholder="Add-on amount" />
+              </div>
+              <!-- Two checkboxes: only if travel/return date not past -->
               <div class="flex items-center" *ngIf="!isTravelDatePast()">
                 <input type="checkbox" formControlName="changeTravelDate" id="changeTravelDate" class="mr-2 h-4 w-4 rounded border-gray-300 accent-button focus:ring-2 focus:ring-button focus:ring-offset-0" />
                 <label for="changeTravelDate" class="text-sm font-medium text-gray-700">Change Travel Date</label>
@@ -372,35 +391,29 @@ import { ToastrService } from 'ngx-toastr';
                 <label class="block text-sm font-medium text-gray-700 mb-1">New Return Date</label>
                 <input type="date" formControlName="newReturnDate" class="input" />
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Now Date Change Our Cost</label>
-                <input type="number" formControlName="newOurCost" class="input" step="0.01" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Now Date Change Sale Cost</label>
-                <input type="number" formControlName="newSalePrice" class="input" step="0.01" />
-              </div>
+              <!-- Payment – Add Payment button (multiple rows) -->
               <div class="col-span-full">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Payment</label>
                 <button type="button" (click)="addDateChangePayment()" class="btn btn-secondary mb-2">Add Payment</button>
                 <div formArrayName="payments" class="space-y-3">
                   <div *ngFor="let p of dateChangePaymentsArray.controls; let i = index" [formGroupName]="i" class="flex flex-wrap items-end gap-3 p-3 bg-white rounded border">
                     <div><label class="block text-xs text-gray-600 mb-1">Paid Amount</label><input type="number" formControlName="paidAmount" class="input" step="0.01" /></div>
-                    <div><label class="block text-xs text-gray-600 mb-1">Mode</label><select formControlName="paymentMode" class="input"><option value="Cash">Cash</option><option value="Cheque">Cheque</option><option value="Credit Card">Credit Card</option><option value="UPI">UPI</option><option value="Bank Transfer">Bank Transfer</option></select></div>
-                    <div><label class="block text-xs text-gray-600 mb-1">Date</label><input type="date" formControlName="paymentDate" class="input" /></div>
-                    <div><label class="block text-xs text-gray-600 mb-1">Reference No</label><input type="text" formControlName="referenceNo" class="input" /></div>
+                    <div><label class="block text-xs text-gray-600 mb-1">Payment Mode</label><select formControlName="paymentMode" class="input"><option value="Cash">Cash</option><option value="Cheque">Cheque</option><option value="Credit Card">Credit Card</option><option value="UPI">UPI</option><option value="Bank Transfer">Bank Transfer</option></select></div>
+                    <div><label class="block text-xs text-gray-600 mb-1">Payment Date</label><input type="date" formControlName="paymentDate" class="input" /></div>
+                    <div><label class="block text-xs text-gray-600 mb-1">Reference No (Optional)</label><input type="text" formControlName="referenceNo" class="input" /></div>
                     <button type="button" (click)="removeDateChangePayment(i)" class="btn btn-danger">Remove</button>
                   </div>
                 </div>
               </div>
               <div class="col-span-full">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Remarks <span class="text-red-500">*</span></label>
-                <textarea formControlName="remarks" class="input" rows="3" required></textarea>
+                <textarea formControlName="remarks" class="input" rows="3" placeholder="Mandatory" [class.border-red-500]="dateChangeForm.get('remarks')?.invalid && dateChangeForm.get('remarks')?.touched"></textarea>
+                <p *ngIf="dateChangeForm.get('remarks')?.invalid && dateChangeForm.get('remarks')?.touched" class="text-red-500 text-xs mt-1">Remarks is required</p>
               </div>
             </div>
             <div class="mt-4 flex justify-end space-x-2">
               <button type="button" (click)="showDateChangeForm = false" class="btn btn-secondary">Cancel</button>
-              <button type="submit" class="btn btn-primary" [disabled]="dateChangeForm.invalid">Submit</button>
+              <button type="submit" class="btn btn-primary">Submit</button>
             </div>
           </form>
         </div>
@@ -426,17 +439,17 @@ import { ToastrService } from 'ngx-toastr';
                 <label class="block text-sm font-medium text-gray-700 mb-1">New Travel Date</label>
                 <input type="date" formControlName="travelDate" class="input" />
               </div>
-              <div>
+              <div *ngIf="booking?.returnDate">
                 <label class="block text-sm font-medium text-gray-700 mb-1">New Return Date</label>
                 <input type="date" formControlName="returnDate" class="input" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Our Cost (Optional)</label>
-                <input type="number" formControlName="newOurCost" class="input" step="0.01" />
+                <label class="block text-sm font-medium text-gray-700 mb-1">Add-on Our Cost <span class="text-gray-500 font-normal">(optional)</span></label>
+                <input type="number" formControlName="newOurCost" class="input" step="0.01" placeholder="Extra cost" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Sale Price (Optional)</label>
-                <input type="number" formControlName="newSalePrice" class="input" step="0.01" />
+                <label class="block text-sm font-medium text-gray-700 mb-1">Add-on Sale Price <span class="text-gray-500 font-normal">(optional)</span></label>
+                <input type="number" formControlName="newSalePrice" class="input" step="0.01" placeholder="Extra sale" />
               </div>
               <div class="col-span-full">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Payment</label>
@@ -453,12 +466,13 @@ import { ToastrService } from 'ngx-toastr';
               </div>
               <div class="col-span-full">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Remarks <span class="text-red-500">*</span></label>
-                <textarea formControlName="remarks" class="input" rows="3" required></textarea>
+                <textarea formControlName="remarks" class="input" rows="3" [class.border-red-500]="flightChangeForm.get('remarks')?.invalid && flightChangeForm.get('remarks')?.touched"></textarea>
+                <p *ngIf="flightChangeForm.get('remarks')?.invalid && flightChangeForm.get('remarks')?.touched" class="text-red-500 text-xs mt-1">Remarks is required</p>
               </div>
             </div>
             <div class="mt-4 flex justify-end space-x-2">
               <button type="button" (click)="showFlightChangeForm = false" class="btn btn-secondary">Cancel</button>
-              <button type="submit" class="btn btn-primary" [disabled]="flightChangeForm.invalid">Submit</button>
+              <button type="submit" class="btn btn-primary">Submit</button>
             </div>
           </form>
         </div>
@@ -469,12 +483,8 @@ import { ToastrService } from 'ngx-toastr';
           <form [formGroup]="cancelForm" (ngSubmit)="onCancel()">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Payment Mode Was <span class="text-red-500">*</span></label>
-              <select formControlName="paymentModeWas" class="input bg-gray-100 cursor-not-allowed" required>
-                <option value="">Select Payment Mode</option>
-                <option value="Cash">Cash</option>
-                <option value="Cheque">Cheque</option>
-                <option value="Credit Card">Credit Card</option>
-              </select>
+              <select formControlName="paymentModeWas" class="input bg-gray-100 cursor-not-allowed" required [class.border-red-500]="cancelForm.get('paymentModeWas')?.invalid && cancelForm.get('paymentModeWas')?.touched"></select>
+              <p *ngIf="cancelForm.get('paymentModeWas')?.invalid && cancelForm.get('paymentModeWas')?.touched" class="text-red-500 text-xs mt-1">Payment mode is required</p>
             </div>
 
             <!-- Credit Card flow -->
@@ -487,10 +497,14 @@ import { ToastrService } from 'ngx-toastr';
                   <input type="number" formControlName="supplierCancellationCharges" class="input" step="0.01" min="0" />
                 </div>
                 <div><label class="block text-sm text-gray-600">Refundable Amount To Client (Not Editable)</label><p class="font-semibold">{{ cancelRefundableToClient | number:'1.2-2' }}</p></div>
-                <div><label class="block text-sm text-gray-600">Current Margin (Not Editable)</label><p class="font-semibold">{{ cancelCurrentMargin | number:'1.2-2' }}</p></div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Any Charges From Client <span class="text-red-500">*</span></label>
-                  <input type="number" formControlName="chargeFromClient" class="input" step="0.01" min="0" />
+                  <input type="number" formControlName="chargeFromClient" class="input" step="0.01" min="0" placeholder="e.g. 220" [class.border-red-500]="cancelForm.get('chargeFromClient')?.invalid && cancelForm.get('chargeFromClient')?.touched" />
+                  <p *ngIf="cancelForm.get('chargeFromClient')?.invalid && cancelForm.get('chargeFromClient')?.touched" class="text-red-500 text-xs mt-1">Charges from client is required</p>
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-600">Current Margin (Not Editable)</label>
+                  <p class="font-semibold">{{ cancelCurrentMargin | number:'1.2-2' }}</p>
                 </div>
                 <div><label class="block text-sm text-gray-600">New Margin (Not Editable)</label><p class="font-semibold">{{ newMargin | number:'1.2-2' }}</p></div>
                 <div><label class="block text-sm text-gray-600">Refund Committed To Client (Not Editable)</label><p class="font-semibold">{{ cancelRefundCommittedToClient | number:'1.2-2' }}</p></div>
@@ -514,18 +528,20 @@ import { ToastrService } from 'ngx-toastr';
                 <div><label class="block text-sm text-gray-600">Refundable Amount from Supplier (Not Editable)</label><p class="font-semibold">{{ cancelRefundableCommittedToClient | number:'1.2-2' }}</p></div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Refundable Amount from Supplier <span class="text-red-500">*</span></label>
-                  <input type="number" formControlName="committedToClient" class="input" step="0.01" placeholder="Enter amount" />
+                  <input type="number" formControlName="committedToClient" class="input" step="0.01" placeholder="Enter amount" [class.border-red-500]="cancelForm.get('committedToClient')?.invalid && cancelForm.get('committedToClient')?.touched" />
+                  <p *ngIf="cancelForm.get('committedToClient')?.invalid && cancelForm.get('committedToClient')?.touched" class="text-red-500 text-xs mt-1">Refundable amount is required</p>
                 </div>
               </div>
             </div>
 
             <div class="mt-4 col-span-full">
               <label class="block text-sm font-medium text-gray-700 mb-1">Remarks <span class="text-red-500">*</span></label>
-              <textarea formControlName="remarks" class="input" rows="3" required></textarea>
+              <textarea formControlName="remarks" class="input" rows="3" required [class.border-red-500]="cancelForm.get('remarks')?.invalid && cancelForm.get('remarks')?.touched"></textarea>
+              <p *ngIf="cancelForm.get('remarks')?.invalid && cancelForm.get('remarks')?.touched" class="text-red-500 text-xs mt-1">Remarks is required</p>
             </div>
             <div class="mt-4 flex justify-end space-x-2">
               <button type="button" (click)="showCancelForm = false" class="btn btn-secondary">Cancel</button>
-              <button type="submit" class="btn btn-danger" [disabled]="cancelForm.invalid">Confirm Cancellation</button>
+              <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
             </div>
           </form>
         </div>
@@ -737,9 +753,25 @@ export class BookingDetailComponent implements OnInit {
           this.userService.getAssignableUsers().subscribe({
             next: (users) => {
               this.assignableUsers = users;
-              const createdById = (this.booking?.submittedBy as any)?._id || (this.booking?.submittedBy as any)?.id;
-              if (createdById && this.assignableUsers.some(u => u._id === createdById)) {
-                this.assignToUserId = createdById;
+              const assignedTo = this.booking?.assignedTo;
+              const assignedToId = assignedTo && (typeof assignedTo === 'object' ? (assignedTo._id ?? (assignedTo as any).id) : assignedTo);
+              const assignedIdStr = assignedToId ? String(assignedToId) : '';
+
+              if (assignedIdStr) {
+                const assignedInList = this.assignableUsers.find(u => String(u._id) === assignedIdStr);
+                this.assignToUserId = assignedInList ? (assignedInList._id ?? assignedIdStr) : assignedIdStr;
+              } else {
+                const createdBy = this.booking?.submittedBy;
+                const createdById = createdBy && (typeof createdBy === 'object' ? (createdBy._id ?? (createdBy as any).id) : createdBy);
+                const idStr = createdById ? String(createdById) : '';
+                const createdUserInList = idStr && this.assignableUsers.find(u => String(u._id) === idStr);
+                if (createdUserInList) {
+                  this.assignToUserId = createdUserInList._id ?? idStr;
+                } else if (this.assignableUsers.length === 1) {
+                  this.assignToUserId = this.assignableUsers[0]._id ?? '';
+                } else {
+                  this.assignToUserId = '';
+                }
               }
             },
             error: () => { this.assignableUsers = []; }
@@ -813,8 +845,8 @@ export class BookingDetailComponent implements OnInit {
   initializeForms() {
     if (this.booking) {
       this.dateChangeForm.patchValue({
-        newOurCost: this.booking.ourCost,
-        newSalePrice: this.booking.salePrice
+        newOurCost: 0,
+        newSalePrice: 0
       });
       // Cancel form: auto-select Payment Mode Was from how customer paid; disable so it cannot be changed
       const paymentModeWas = this.getPrimaryPaymentMode();
@@ -908,8 +940,9 @@ export class BookingDetailComponent implements OnInit {
   getChangeEntries(history: any): { label: string; old: string; new: string }[] {
     const c = history.changes || {};
     const out: { label: string; old: string; new: string }[] = [];
+    const isAddOnOnly = c.ourCostAddon != null || c.salePriceAddon != null;
 
-    // Date Change: oldTravelDate, newTravelDate, oldReturnDate, newReturnDate, oldOurCost, newOurCost, oldSalePrice, newSalePrice
+    // Date Change: oldTravelDate, newTravelDate, oldReturnDate, newReturnDate; for add-on-only skip base Our Cost/Sale Price rows
     if (c.oldTravelDate != null || c.newTravelDate != null) {
       out.push({
         label: 'Travel Date',
@@ -931,18 +964,34 @@ export class BookingDetailComponent implements OnInit {
         new: isEpochOr1970(c.newReturnDate) ? '–' : newRet
       });
     }
-    if (c.oldOurCost != null || c.newOurCost != null) {
+    if (!isAddOnOnly && (c.oldOurCost != null || c.newOurCost != null)) {
       out.push({
         label: 'Our Cost',
         old: c.oldOurCost != null ? String(c.oldOurCost) : '–',
         new: c.newOurCost != null ? String(c.newOurCost) : '–'
       });
     }
-    if (c.oldSalePrice != null || c.newSalePrice != null) {
+    if (!isAddOnOnly && (c.oldSalePrice != null || c.newSalePrice != null)) {
       out.push({
         label: 'Sale Price',
         old: c.oldSalePrice != null ? String(c.oldSalePrice) : '–',
         new: c.newSalePrice != null ? String(c.newSalePrice) : '–'
+      });
+    }
+    if (c.ourCostAddon != null && (c.ourCostAddon !== 0 || c.oldOurCost != null)) {
+      const prevAddon = c.previousOurCostAddon != null ? String(c.previousOurCostAddon) : '–';
+      out.push({
+        label: 'Our Cost Add-on',
+        old: prevAddon,
+        new: String(c.ourCostAddon)
+      });
+    }
+    if (c.salePriceAddon != null && (c.salePriceAddon !== 0 || c.oldSalePrice != null)) {
+      const prevAddon = c.previousSalePriceAddon != null ? String(c.previousSalePriceAddon) : '–';
+      out.push({
+        label: 'Sale Price Add-on',
+        old: prevAddon,
+        new: String(c.salePriceAddon)
       });
     }
 
@@ -973,6 +1022,7 @@ export class BookingDetailComponent implements OnInit {
       'remarks', 'changedBy', 'changedAt', 'newDetails', 'oldDetails',
       'oldTravelDate', 'newTravelDate', 'oldReturnDate', 'newReturnDate',
       'oldOurCost', 'newOurCost', 'oldSalePrice', 'newSalePrice',
+      'ourCostAddon', 'salePriceAddon',
       'multipleSectors', '__v'
     ];
     const labels: Record<string, string> = {
@@ -1027,6 +1077,14 @@ export class BookingDetailComponent implements OnInit {
   canSeePaymentInfo(): boolean {
     const user = this.authService.getCurrentUserValue();
     return !!user && ['AGENT1', 'AGENT2', 'ACCOUNT', 'ADMIN'].includes(user.role);
+  }
+
+  /** Assigned To display: show assigned user if set, else created user (Submitted By), else – */
+  getAssignedToDisplay(): string {
+    if (!this.booking) return '–';
+    const assigned = this.booking.assignedTo;
+    if (assigned && (typeof assigned === 'object' && assigned.name)) return assigned.name;
+    return this.booking.submittedByName || (this.booking.submittedBy && typeof this.booking.submittedBy === 'object' && (this.booking.submittedBy as any).name) || '–';
   }
 
   /** Account can assign to Agent1/Agent2; Agent2 to Agent1; Admin to Agent1/Agent2/Account */
@@ -1085,7 +1143,11 @@ export class BookingDetailComponent implements OnInit {
   }
 
   onDateChange() {
-    if (this.dateChangeForm.valid && this.booking) {
+    if (this.dateChangeForm.invalid) {
+      this.dateChangeForm.markAllAsTouched();
+      return;
+    }
+    if (this.booking) {
       const formValue = this.dateChangeForm.value;
       const paymentsPayload = (formValue.payments || []).map((p: any) => ({
         paidAmount: typeof p.paidAmount === 'number' ? p.paidAmount : parseFloat(p.paidAmount) || 0,
@@ -1114,14 +1176,18 @@ export class BookingDetailComponent implements OnInit {
   }
 
   onFlightChange() {
-    if (this.flightChangeForm.valid && this.booking) {
+    if (this.flightChangeForm.invalid) {
+      this.flightChangeForm.markAllAsTouched();
+      return;
+    }
+    if (this.booking) {
       const formValue = this.flightChangeForm.value;
       const newDetails: any = {};
       if (formValue.airline) newDetails.airline = formValue.airline;
       if (formValue.from) newDetails.from = formValue.from;
       if (formValue.to) newDetails.to = formValue.to;
       if (formValue.travelDate) newDetails.travelDate = formValue.travelDate;
-      if (formValue.returnDate) newDetails.returnDate = formValue.returnDate;
+      if (formValue.returnDate && this.booking?.returnDate) newDetails.returnDate = formValue.returnDate;
       const paymentsPayload = (formValue.payments || []).map((p: any) => ({
         paidAmount: typeof p.paidAmount === 'number' ? p.paidAmount : parseFloat(p.paidAmount) || 0,
         paymentMode: p.paymentMode || 'Cash',
@@ -1146,8 +1212,12 @@ export class BookingDetailComponent implements OnInit {
   }
 
   onCancel() {
+    if (this.cancelForm.invalid) {
+      this.cancelForm.markAllAsTouched();
+      return;
+    }
     const formValue = this.cancelForm.getRawValue();
-    if (this.cancelForm.valid && this.booking && formValue.paymentModeWas) {
+    if (this.booking && formValue.paymentModeWas) {
       this.bookingService.cancelBooking(this.booking._id!, {
         paymentModeWas: formValue.paymentModeWas,
         refundableAmount: formValue.refundableAmount || 0,
@@ -1194,9 +1264,10 @@ export class BookingDetailComponent implements OnInit {
     if (!this.booking) return 0;
     const paymentMode = this.cancelForm?.get('paymentModeWas')?.value;
     if (paymentMode === 'Credit Card') {
-      const charge = this.cancelForm?.get('chargeFromClient')?.value ?? 0;
-      const oldCost = this.booking.ourCost ?? 0;
-      return Number(charge) - Number(oldCost);
+      const chargeRaw = this.cancelForm?.get('chargeFromClient')?.value;
+      const charge = typeof chargeRaw === 'number' ? chargeRaw : parseFloat(chargeRaw) || 0;
+      const oldCost = Number(this.booking.ourCost) || 0;
+      return charge - oldCost;
     }
     const scc = this.cancelForm?.get('supplierCancellationCharges')?.value ?? 0;
     const refundable = this.cancelRefundableToClient;

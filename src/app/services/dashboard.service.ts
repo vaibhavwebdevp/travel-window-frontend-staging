@@ -10,6 +10,7 @@ export interface DashboardStats {
   unticketedCount: number;
   cancelledCount: number;
   totalUsers?: number;
+  assignedTicketsCount?: number;
 }
 
 export interface ActivityItem {

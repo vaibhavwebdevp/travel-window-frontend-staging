@@ -142,7 +142,10 @@ export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onSubmit() {
-    if (!this.loginForm.valid) return;
+    if (!this.loginForm.valid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
     if (this.recaptchaEnabled) {
       const token = window.grecaptcha?.getResponse?.();
       if (!token) {

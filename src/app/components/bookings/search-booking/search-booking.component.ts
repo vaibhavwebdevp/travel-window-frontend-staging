@@ -38,6 +38,7 @@ import { BookingService, Booking } from '../../../services/booking.service';
               />
             </div>
           </div>
+          <p *ngIf="searchForm.hasError('atLeastOneRequired') && (searchForm.get('pnr')?.touched || searchForm.get('contactNumber')?.touched)" class="text-red-500 text-xs mt-1">Enter PNR or contact number to search</p>
           <div class="mt-4 flex justify-end">
             <button type="submit" class="btn btn-primary" [disabled]="searchForm.invalid">Search</button>
           </div>
@@ -147,7 +148,10 @@ export class SearchBookingComponent implements OnInit {
   }
 
   onSearch() {
-    if (this.searchForm.invalid) return;
+    if (this.searchForm.invalid) {
+      this.searchForm.markAllAsTouched();
+      return;
+    }
 
     const formValue = this.searchForm.value;
     const query = formValue.pnr || formValue.contactNumber;

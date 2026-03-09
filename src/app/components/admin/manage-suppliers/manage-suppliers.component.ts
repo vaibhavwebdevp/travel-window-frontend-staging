@@ -35,7 +35,8 @@ import Swal from 'sweetalert2';
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Supplier Name <span class="text-red-500">*</span></label>
-              <input type="text" formControlName="name" class="input" placeholder="Enter supplier name" required />
+              <input type="text" formControlName="name" class="input" placeholder="Enter supplier name" [class.border-red-500]="supplierForm.get('name')?.invalid && supplierForm.get('name')?.touched" />
+              <p *ngIf="supplierForm.get('name')?.invalid && supplierForm.get('name')?.touched" class="text-red-500 text-xs mt-1">Supplier name is required</p>
             </div>
             <div class="flex items-center">
               <input type="checkbox" formControlName="isActive" id="isActive" class="mr-2 h-4 w-4 rounded border-gray-300 accent-button focus:ring-2 focus:ring-button focus:ring-offset-0" />
@@ -180,7 +181,10 @@ export class ManageSuppliersComponent implements OnInit {
   }
 
   onSubmit() {
-    if (this.supplierForm.invalid) return;
+    if (this.supplierForm.invalid) {
+      this.supplierForm.markAllAsTouched();
+      return;
+    }
 
     const formValue = this.supplierForm.value;
 

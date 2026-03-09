@@ -28,7 +28,7 @@ import { ToastrService } from 'ngx-toastr';
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Submitted By</label>
-              <input type="text" [value]="currentUserName" class="input bg-gray-100" readonly />
+              <input type="text" [value]="submittedByNameDisplay" class="input bg-gray-100" readonly />
             </div>
           </div>
         </div>
@@ -141,15 +141,18 @@ import { ToastrService } from 'ngx-toastr';
               <div class="grid grid-cols-3 gap-4 mb-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Travel Date <span class="text-red-500">*</span></label>
-                  <input type="date" formControlName="travelDate" class="input" />
+                  <input type="date" formControlName="travelDate" class="input" [class.border-red-500]="bookingForm.get('travelDate')?.invalid && bookingForm.get('travelDate')?.touched" />
+                  <p *ngIf="bookingForm.get('travelDate')?.invalid && bookingForm.get('travelDate')?.touched" class="text-red-500 text-xs mt-1">Travel date is required</p>
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">From <span class="text-red-500">*</span></label>
-                  <input type="text" formControlName="from" class="input" placeholder="Enter origin" (blur)="applyCapitalize('from')" />
+                  <input type="text" formControlName="from" class="input" placeholder="Enter origin" (blur)="applyCapitalize('from')" [class.border-red-500]="bookingForm.get('from')?.invalid && bookingForm.get('from')?.touched" />
+                  <p *ngIf="bookingForm.get('from')?.invalid && bookingForm.get('from')?.touched" class="text-red-500 text-xs mt-1">Origin is required</p>
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">To <span class="text-red-500">*</span></label>
-                  <input type="text" formControlName="to" class="input" placeholder="Enter destination" (blur)="applyCapitalize('to')" />
+                  <input type="text" formControlName="to" class="input" placeholder="Enter destination" (blur)="applyCapitalize('to')" [class.border-red-500]="bookingForm.get('to')?.invalid && bookingForm.get('to')?.touched" />
+                  <p *ngIf="bookingForm.get('to')?.invalid && bookingForm.get('to')?.touched" class="text-red-500 text-xs mt-1">Destination is required</p>
                 </div>
               </div>
               <button type="button" (click)="addMultipleSector()" class="btn btn-secondary mb-4">Add More Sector</button>
@@ -256,21 +259,24 @@ import { ToastrService } from 'ngx-toastr';
                   <div class="grid grid-cols-4 gap-4">
                     <div>
                       <label class="block text-sm font-medium text-gray-700 mb-1">Paid Amount <span class="text-red-500">*</span></label>
-                      <input type="number" formControlName="paidAmount" class="input" step="0.01" />
+                      <input type="number" formControlName="paidAmount" class="input" step="0.01" [class.border-red-500]="payment.get('paidAmount')?.invalid && payment.get('paidAmount')?.touched" />
+                      <p *ngIf="payment.get('paidAmount')?.invalid && payment.get('paidAmount')?.touched" class="text-red-500 text-xs mt-1">Paid amount is required</p>
                     </div>
                     <div>
                       <label class="block text-sm font-medium text-gray-700 mb-1">Payment Mode <span class="text-red-500">*</span></label>
-                      <select formControlName="paymentMode" class="input">
+                      <select formControlName="paymentMode" class="input" [class.border-red-500]="payment.get('paymentMode')?.invalid && payment.get('paymentMode')?.touched">
                         <option value="Cash">Cash</option>
                         <option value="Cheque">Cheque</option>
                         <option value="Credit Card">Credit Card</option>
                         <option value="UPI">UPI</option>
                         <option value="Bank Transfer">Bank Transfer</option>
                       </select>
+                      <p *ngIf="payment.get('paymentMode')?.invalid && payment.get('paymentMode')?.touched" class="text-red-500 text-xs mt-1">Payment mode is required</p>
                     </div>
                     <div>
                       <label class="block text-sm font-medium text-gray-700 mb-1">Payment Date <span class="text-red-500">*</span></label>
-                      <input type="date" formControlName="paymentDate" class="input" />
+                      <input type="date" formControlName="paymentDate" class="input" [class.border-red-500]="payment.get('paymentDate')?.invalid && payment.get('paymentDate')?.touched" />
+                      <p *ngIf="payment.get('paymentDate')?.invalid && payment.get('paymentDate')?.touched" class="text-red-500 text-xs mt-1">Payment date is required</p>
                     </div>
                     <div>
                       <label class="block text-sm font-medium text-gray-700 mb-1">Reference No</label>
@@ -310,6 +316,8 @@ export class NewBookingComponent implements OnInit {
   isEditMode = false;
   bookingId: string | null = null;
   currentUserName = '';
+  /** In edit mode: original submitter name; in create mode: same as currentUserName */
+  submittedByNameDisplay = '';
 
   countryOptions: { code: string; name: string }[] = [
     { code: '+91', name: 'India' },
@@ -401,6 +409,7 @@ export class NewBookingComponent implements OnInit {
     this.authService.currentUser$.subscribe(user => {
       if (user) {
         this.currentUserName = user.name;
+        this.submittedByNameDisplay = user.name;
       }
     });
   }
@@ -521,6 +530,7 @@ export class NewBookingComponent implements OnInit {
   loadBooking(id: string) {
     this.bookingService.getBooking(id).subscribe({
       next: (booking) => {
+        this.submittedByNameDisplay = booking.submittedByName || (booking.submittedBy && (booking.submittedBy as any).name) || this.currentUserName;
         const { countryCode, localNumber } = this.parseContactNumber(booking.contactNumber || '');
         const { payments: _p, multipleSectors: _s, additionalServices: _as, additionalService: _as1, additionalServicePrice: _as2, ...restBooking } = booking as any;
         this.bookingForm.patchValue({
@@ -661,6 +671,9 @@ export class NewBookingComponent implements OnInit {
       };
 
       if (this.isEditMode && this.bookingId) {
+        delete bookingData.dateOfSubmission;
+        delete bookingData.submittedBy;
+        delete bookingData.submittedByName;
         this.bookingService.updateBooking(this.bookingId, bookingData).subscribe({
           next: () => {
             this.toastr.success('Booking updated successfully', 'Success');

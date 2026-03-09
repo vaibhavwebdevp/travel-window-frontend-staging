@@ -64,7 +64,8 @@ import { ToastrService } from 'ngx-toastr';
           <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-              <input type="text" formControlName="name" class="input" placeholder="Your name" />
+              <input type="text" formControlName="name" class="input" placeholder="Your name" [class.border-red-500]="profileForm.get('name')?.invalid && profileForm.get('name')?.touched" />
+              <p *ngIf="profileForm.get('name')?.invalid && profileForm.get('name')?.touched" class="text-red-500 text-xs mt-1">Name is required</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -93,6 +94,7 @@ import { ToastrService } from 'ngx-toastr';
                 class="input"
                 placeholder="Enter current password"
                 autocomplete="current-password"
+                [class.border-red-500]="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched"
               />
               <p *ngIf="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched" class="text-red-500 text-xs mt-1">
                 Required
@@ -106,6 +108,7 @@ import { ToastrService } from 'ngx-toastr';
                 class="input"
                 placeholder="At least 6 characters"
                 autocomplete="new-password"
+                [class.border-red-500]="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched"
               />
               <p *ngIf="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched" class="text-red-500 text-xs mt-1">
                 At least 6 characters required
@@ -119,9 +122,13 @@ import { ToastrService } from 'ngx-toastr';
                 class="input"
                 placeholder="Confirm new password"
                 autocomplete="new-password"
+                [class.border-red-500]="(passwordForm.get('confirmPassword')?.invalid || passwordForm.hasError('passwordMismatch')) && passwordForm.get('confirmPassword')?.touched"
               />
               <p *ngIf="passwordForm.get('confirmPassword')?.touched && passwordForm.hasError('passwordMismatch')" class="text-red-500 text-xs mt-1">
                 Passwords do not match
+              </p>
+              <p *ngIf="passwordForm.get('confirmPassword')?.touched && passwordForm.get('confirmPassword')?.invalid && !passwordForm.hasError('passwordMismatch')" class="text-red-500 text-xs mt-1">
+                Confirm password is required
               </p>
             </div>
             <button
@@ -214,7 +221,10 @@ export class SettingsComponent implements OnInit {
   }
 
   saveProfile() {
-    if (this.profileForm.invalid) return;
+    if (this.profileForm.invalid) {
+      this.profileForm.markAllAsTouched();
+      return;
+    }
     const name = this.profileForm.get('name')?.value?.trim();
     if (!name) return;
     this.authService.updateProfile({ name }).subscribe({
@@ -229,7 +239,10 @@ export class SettingsComponent implements OnInit {
   }
 
   changePassword() {
-    if (this.passwordForm.invalid || this.passwordForm.hasError('passwordMismatch')) return;
+    if (this.passwordForm.invalid || this.passwordForm.hasError('passwordMismatch')) {
+      this.passwordForm.markAllAsTouched();
+      return;
+    }
     const current = this.passwordForm.get('currentPassword')?.value;
     const newP = this.passwordForm.get('newPassword')?.value;
     if (!current || !newP) return;

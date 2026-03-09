@@ -74,6 +74,20 @@ import { NotificationService, Notification } from '../../../services/notificatio
           </div>
           <span class="text-xs text-[#0096D2] hover:underline mt-2 inline-block">View</span>
         </a>
+        <div class="card hover:shadow-lg transition-shadow" *ngIf="stats?.assignedTicketsCount !== undefined">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500">Assigned Tickets</p>
+              <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats?.assignedTicketsCount ?? '–' }}</p>
+            </div>
+            <div class="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
+              <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+            </div>
+          </div>
+          <a [routerLink]="['/dashboard/bookings']" class="text-xs text-[#0096D2] hover:underline mt-2 inline-block">View</a>
+        </div>
         <div class="card hover:shadow-lg transition-shadow" *ngIf="stats?.totalUsers !== undefined">
           <div class="flex items-center justify-between">
             <div>
