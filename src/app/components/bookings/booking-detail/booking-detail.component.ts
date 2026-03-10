@@ -126,13 +126,30 @@ import { ToastrService } from 'ngx-toastr';
               <label class="block text-sm font-medium text-gray-500 mb-1">Airline</label>
               <p class="text-gray-900">{{ booking.airline }}</p>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1">Our Cost</label>
-              <p class="text-gray-900">{{ booking.ourCost | number:'1.2-2' }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1">Sale Price</label>
-              <p class="text-gray-900">{{ booking.salePrice | number:'1.2-2' }}</p>
+            <!-- Cost breakdown: Base + Date Change + Flight Change charges (refund not applicable on add-on charges) -->
+            <div class="col-span-full mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <h4 class="text-sm font-semibold text-gray-700 mb-3">Cost Breakdown</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                  <p class="text-xs font-medium text-gray-500 uppercase">Our Cost</p>
+                  <div class="text-sm">
+                    <div class="flex justify-between"><span class="text-gray-600">Base (booking)</span><span>{{ baseOurCost | number:'1.2-2' }}</span></div>
+                    <div *ngIf="dateChangeOurAddon > 0" class="flex justify-between text-blue-700"><span>Date Change charges</span><span>{{ dateChangeOurAddon | number:'1.2-2' }}</span></div>
+                    <div *ngIf="flightChangeOurAddon > 0" class="flex justify-between text-indigo-700"><span>Flight Change charges</span><span>{{ flightChangeOurAddon | number:'1.2-2' }}</span></div>
+                    <div class="flex justify-between font-semibold pt-1 border-t border-gray-200"><span>Total Our Cost</span><span>{{ booking.ourCost | number:'1.2-2' }}</span></div>
+                  </div>
+                </div>
+                <div class="space-y-2">
+                  <p class="text-xs font-medium text-gray-500 uppercase">Sale Price</p>
+                  <div class="text-sm">
+                    <div class="flex justify-between"><span class="text-gray-600">Base (booking)</span><span>{{ baseSalePrice | number:'1.2-2' }}</span></div>
+                    <div *ngIf="dateChangeSaleAddon > 0" class="flex justify-between text-blue-700"><span>Date Change charges</span><span>{{ dateChangeSaleAddon | number:'1.2-2' }}</span></div>
+                    <div *ngIf="flightChangeSaleAddon > 0" class="flex justify-between text-indigo-700"><span>Flight Change charges</span><span>{{ flightChangeSaleAddon | number:'1.2-2' }}</span></div>
+                    <div class="flex justify-between font-semibold pt-1 border-t border-gray-200"><span>Total Sale Price</span><span>{{ booking.salePrice | number:'1.2-2' }}</span></div>
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">Date Change &amp; Flight Change charges are separate; refund does not apply on these add-on charges.</p>
             </div>
             <div *ngIf="booking.additionalService">
               <label class="block text-sm font-medium text-gray-500 mb-1">Additional Service</label>
@@ -483,15 +500,21 @@ import { ToastrService } from 'ngx-toastr';
           <form [formGroup]="cancelForm" (ngSubmit)="onCancel()">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Payment Mode Was <span class="text-red-500">*</span></label>
-              <select formControlName="paymentModeWas" class="input bg-gray-100 cursor-not-allowed" required [class.border-red-500]="cancelForm.get('paymentModeWas')?.invalid && cancelForm.get('paymentModeWas')?.touched"></select>
+              <select formControlName="paymentModeWas" class="input bg-gray-100 cursor-not-allowed" required [class.border-red-500]="cancelForm.get('paymentModeWas')?.invalid && cancelForm.get('paymentModeWas')?.touched">
+                <option value="">Select payment mode</option>
+                <option value="Cash">Cash</option>
+                <option value="Cheque">Cheque</option>
+                <option value="Credit Card">Credit Card</option>
+              </select>
               <p *ngIf="cancelForm.get('paymentModeWas')?.invalid && cancelForm.get('paymentModeWas')?.touched" class="text-red-500 text-xs mt-1">Payment mode is required</p>
             </div>
 
             <!-- Credit Card flow -->
             <div *ngIf="cancelForm.get('paymentModeWas')?.value === 'Credit Card'" class="mt-4 space-y-4">
+              <p *ngIf="(dateChangeSaleAddon + flightChangeSaleAddon) > 0" class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">Refund is only on base sale ({{ refundablePortionOfSalePrice | number:'1.2-2' }}). Date Change &amp; Flight Change charges are non-refundable.</p>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label class="block text-sm text-gray-600">Total Sale Price (Not Editable)</label><p class="font-semibold">{{ totalSalePriceForCancel | number:'1.2-2' }}</p></div>
-                <div><label class="block text-sm text-gray-600">Old Margin (Not Editable)</label><p class="font-semibold">{{ oldMargin | number:'1.2-2' }}</p></div>
+                <div><label class="block text-sm text-gray-600">Old Margin (Not Editable)</label><p class="font-semibold">{{ baseMargin | number:'1.2-2' }} <span class="text-xs text-gray-500">(on base only)</span></p></div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Supplier Cancellation Charges <span class="text-red-500">*</span></label>
                   <input type="number" formControlName="supplierCancellationCharges" class="input" step="0.01" min="0" />
@@ -515,7 +538,7 @@ import { ToastrService } from 'ngx-toastr';
             <div *ngIf="cancelForm.get('paymentModeWas')?.value && cancelForm.get('paymentModeWas')?.value !== 'Credit Card'" class="mt-4 space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label class="block text-sm text-gray-600">Total Sale Price (Not Editable)</label><p class="font-semibold">{{ totalSalePriceForCancel | number:'1.2-2' }}</p></div>
-                <div><label class="block text-sm text-gray-600">Our Old Margin (Not Editable)</label><p class="font-semibold">{{ oldMargin | number:'1.2-2' }}</p></div>
+                <div><label class="block text-sm text-gray-600">Our Old Margin (Not Editable)</label><p class="font-semibold">{{ baseMargin | number:'1.2-2' }} <span class="text-xs text-gray-500">(on base only)</span></p></div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Supplier Cancellation Charges <span class="text-red-500">*</span></label>
                   <input type="number" formControlName="supplierCancellationCharges" class="input" step="0.01" min="0" />
@@ -857,7 +880,7 @@ export class BookingDetailComponent implements OnInit {
     }
   }
 
-  /** Primary payment mode from booking (customer's payment) – largest paidAmount, else first. */
+  /** Primary payment mode from booking (customer's payment) – largest paidAmount, else first. Maps to cancellation enum: Cash, Cheque, Credit Card. */
   getPrimaryPaymentMode(): string {
     if (!this.booking?.payments?.length) return '';
     const payments = this.booking.payments as { paidAmount?: number; paymentMode?: string }[];
@@ -865,7 +888,9 @@ export class BookingDetailComponent implements OnInit {
       const amount = typeof p.paidAmount === 'number' ? p.paidAmount : Number(p.paidAmount) || 0;
       return !best || amount > (typeof best.paidAmount === 'number' ? best.paidAmount : Number(best.paidAmount) || 0) ? p : best;
     }, payments[0]);
-    return primary?.paymentMode || '';
+    const mode = (primary?.paymentMode || '').trim();
+    if (mode === 'Credit Card' || mode === 'Cheque') return mode;
+    return 'Cash';
   }
 
   canVerify(): boolean {
@@ -934,6 +959,11 @@ export class BookingDetailComponent implements OnInit {
     this.showCancelForm = true;
     this.showDateChangeForm = false;
     this.showFlightChangeForm = false;
+    if (this.booking) {
+      const paymentModeWas = this.getPrimaryPaymentMode();
+      this.cancelForm.patchValue({ paymentModeWas: paymentModeWas || '' });
+      this.cancelForm.get('paymentModeWas')?.disable();
+    }
   }
 
   /** Build list of old → new for Progress History (Date Change, Flight Change, etc.) */
@@ -1251,13 +1281,53 @@ export class BookingDetailComponent implements OnInit {
     return (this.booking.salePrice || 0) - (this.booking.ourCost || 0);
   }
 
+  /** Sum of Date Change our-cost add-ons (refund not applicable) */
+  get dateChangeOurAddon(): number {
+    if (!this.booking?.dateChanges?.length) return 0;
+    return (this.booking.dateChanges as { ourCostAddon?: number }[]).reduce((s, d) => s + (Number(d.ourCostAddon) || 0), 0);
+  }
+  /** Sum of Date Change sale-price add-ons */
+  get dateChangeSaleAddon(): number {
+    if (!this.booking?.dateChanges?.length) return 0;
+    return (this.booking.dateChanges as { salePriceAddon?: number }[]).reduce((s, d) => s + (Number(d.salePriceAddon) || 0), 0);
+  }
+  /** Sum of Flight Change our-cost add-ons (refund not applicable) */
+  get flightChangeOurAddon(): number {
+    if (!this.booking?.flightChanges?.length) return 0;
+    return (this.booking.flightChanges as { ourCostAddon?: number }[]).reduce((s, d) => s + (Number(d.ourCostAddon) || 0), 0);
+  }
+  /** Sum of Flight Change sale-price add-ons */
+  get flightChangeSaleAddon(): number {
+    if (!this.booking?.flightChanges?.length) return 0;
+    return (this.booking.flightChanges as { salePriceAddon?: number }[]).reduce((s, d) => s + (Number(d.salePriceAddon) || 0), 0);
+  }
+  /** Base our cost (before date/flight change add-ons) */
+  get baseOurCost(): number {
+    if (!this.booking) return 0;
+    return Math.max(0, (Number(this.booking.ourCost) || 0) - this.dateChangeOurAddon - this.flightChangeOurAddon);
+  }
+  /** Base sale price (before date/flight change add-ons) */
+  get baseSalePrice(): number {
+    if (!this.booking) return 0;
+    return Math.max(0, (Number(this.booking.salePrice) || 0) - this.dateChangeSaleAddon - this.flightChangeSaleAddon);
+  }
+  /** Base margin (for refund/cancel calculations – on base sale and cost only) */
+  get baseMargin(): number {
+    return this.baseSalePrice - this.baseOurCost;
+  }
+
   get totalSalePriceForCancel(): number {
     return (this.booking?.totalSalePrice || this.booking?.salePrice || 0) as number;
   }
 
+  /** Portion of sale price that is refundable (excludes Date Change & Flight Change add-ons). */
+  get refundablePortionOfSalePrice(): number {
+    return this.baseSalePrice;
+  }
+
   get cancelRefundableToClient(): number {
     const scc = this.cancelForm?.get('supplierCancellationCharges')?.value ?? 0;
-    return this.totalSalePriceForCancel - scc;
+    return Math.max(0, this.refundablePortionOfSalePrice - scc);
   }
 
   get cancelCurrentMargin(): number {
@@ -1266,33 +1336,33 @@ export class BookingDetailComponent implements OnInit {
     if (paymentMode === 'Credit Card') {
       const chargeRaw = this.cancelForm?.get('chargeFromClient')?.value;
       const charge = typeof chargeRaw === 'number' ? chargeRaw : parseFloat(chargeRaw) || 0;
-      const oldCost = Number(this.booking.ourCost) || 0;
-      return charge - oldCost;
+      return charge - this.baseOurCost;
     }
     const scc = this.cancelForm?.get('supplierCancellationCharges')?.value ?? 0;
     const refundable = this.cancelRefundableToClient;
-    return this.oldMargin + scc + refundable - this.totalSalePriceForCancel;
+    return this.baseMargin + scc + refundable - this.refundablePortionOfSalePrice;
   }
 
   get cancelRefundCommittedToClient(): number {
     const scc = this.cancelForm?.get('supplierCancellationCharges')?.value ?? 0;
     const charge = this.cancelForm?.get('chargeFromClient')?.value ?? 0;
-    return this.totalSalePriceForCancel - scc - charge;
+    const chargeNum = typeof charge === 'number' ? charge : parseFloat(charge) || 0;
+    return Math.max(0, this.refundablePortionOfSalePrice - scc - chargeNum);
   }
 
   get cancelTotalCancellationCharges(): number {
     const scc = this.cancelForm?.get('supplierCancellationCharges')?.value ?? 0;
     const occ = this.cancelForm?.get('ourCancellationCharges')?.value ?? 0;
-    return this.oldMargin + scc + occ;
+    return this.baseMargin + scc + occ;
   }
 
   get cancelRefundableCommittedToClient(): number {
-    return this.totalSalePriceForCancel - this.cancelTotalCancellationCharges;
+    return Math.max(0, this.refundablePortionOfSalePrice - this.cancelTotalCancellationCharges);
   }
 
   get newMargin(): number {
     if (!this.booking || !this.cancelForm) return 0;
-    const formValue = this.cancelForm.value;
+    const formValue = this.cancelForm.getRawValue();
     const paymentMode = formValue.paymentModeWas;
 
     if (paymentMode === 'Credit Card') {
@@ -1300,7 +1370,7 @@ export class BookingDetailComponent implements OnInit {
       return chargeFromClient + this.cancelCurrentMargin;
     } else {
       const committedToClient = formValue.committedToClient || 0;
-      return (this.booking.salePrice || 0) - committedToClient;
+      return this.refundablePortionOfSalePrice - committedToClient;
     }
   }
 
