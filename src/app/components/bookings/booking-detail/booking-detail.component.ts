@@ -526,8 +526,8 @@ import { ToastrService } from 'ngx-toastr';
                   <p *ngIf="cancelForm.get('chargeFromClient')?.invalid && cancelForm.get('chargeFromClient')?.touched" class="text-red-500 text-xs mt-1">Charges from client is required</p>
                 </div>
                 <div>
-                  <label class="block text-sm text-gray-600">Current Margin (Not Editable)</label>
-                  <p class="font-semibold">{{ cancelCurrentMargin | number:'1.2-2' }}</p>
+                  <label class="block text-sm text-gray-600">Old Margin (Not Editable)</label>
+                  <p class="font-semibold">{{ cancelOldMarginCC | number:'1.2-2' }}</p>
                 </div>
                 <div><label class="block text-sm text-gray-600">New Margin (Not Editable)</label><p class="font-semibold">{{ newMargin | number:'1.2-2' }}</p></div>
                 <div><label class="block text-sm text-gray-600">Refund Committed To Client (Not Editable)</label><p class="font-semibold">{{ cancelRefundCommittedToClient | number:'1.2-2' }}</p></div>
@@ -548,12 +548,7 @@ import { ToastrService } from 'ngx-toastr';
                   <input type="number" formControlName="ourCancellationCharges" class="input" step="0.01" min="0" />
                 </div>
                 <div><label class="block text-sm text-gray-600">Total Cancellation Charges (Not Editable)</label><p class="font-semibold">{{ cancelTotalCancellationCharges | number:'1.2-2' }}</p></div>
-                <div><label class="block text-sm text-gray-600">Refundable Amount from Supplier (Not Editable)</label><p class="font-semibold">{{ cancelRefundableCommittedToClient | number:'1.2-2' }}</p></div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Refundable Amount from Supplier <span class="text-red-500">*</span></label>
-                  <input type="number" formControlName="committedToClient" class="input" step="0.01" placeholder="Enter amount" [class.border-red-500]="cancelForm.get('committedToClient')?.invalid && cancelForm.get('committedToClient')?.touched" />
-                  <p *ngIf="cancelForm.get('committedToClient')?.invalid && cancelForm.get('committedToClient')?.touched" class="text-red-500 text-xs mt-1">Refundable amount is required</p>
-                </div>
+                <div><label class="block text-sm text-gray-600">Refund Committed To Client (Not Editable)</label><p class="font-semibold">{{ refundCommittedToClientNonCC | number:'1.2-2' }}</p><p class="text-xs text-gray-500 mt-0.5">Total Sale Price − Total Cancellation Charges</p></div>
               </div>
             </div>
 
@@ -693,7 +688,7 @@ export class BookingDetailComponent implements OnInit {
         this.cancelForm.get('chargeFromClient')?.setValidators([Validators.required]);
         this.cancelForm.get('committedToClient')?.clearValidators();
       } else {
-        this.cancelForm.get('committedToClient')?.setValidators([Validators.required]);
+        this.cancelForm.get('committedToClient')?.clearValidators();
         this.cancelForm.get('chargeFromClient')?.clearValidators();
       }
       this.cancelForm.get('chargeFromClient')?.updateValueAndValidity();
@@ -1248,10 +1243,11 @@ export class BookingDetailComponent implements OnInit {
     }
     const formValue = this.cancelForm.getRawValue();
     if (this.booking && formValue.paymentModeWas) {
+      const isCC = formValue.paymentModeWas === 'Credit Card';
       this.bookingService.cancelBooking(this.booking._id!, {
         paymentModeWas: formValue.paymentModeWas,
         refundableAmount: formValue.refundableAmount || 0,
-        committedToClient: formValue.committedToClient,
+        committedToClient: isCC ? formValue.committedToClient : this.refundCommittedToClientNonCC,
         chargeFromClient: formValue.chargeFromClient,
         supplierCancellationCharges: formValue.supplierCancellationCharges ?? 0,
         ourCancellationCharges: formValue.ourCancellationCharges ?? 0,
@@ -1334,13 +1330,21 @@ export class BookingDetailComponent implements OnInit {
     if (!this.booking) return 0;
     const paymentMode = this.cancelForm?.get('paymentModeWas')?.value;
     if (paymentMode === 'Credit Card') {
-      const chargeRaw = this.cancelForm?.get('chargeFromClient')?.value;
-      const charge = typeof chargeRaw === 'number' ? chargeRaw : parseFloat(chargeRaw) || 0;
-      return charge - this.baseOurCost;
+      return this.cancelOldMarginCC;
     }
     const scc = this.cancelForm?.get('supplierCancellationCharges')?.value ?? 0;
     const refundable = this.cancelRefundableToClient;
     return this.baseMargin + scc + refundable - this.refundablePortionOfSalePrice;
+  }
+
+  /** Credit Card cancel: Old Margin = 0 when Any Charges From Client empty; else if Charge < Base Margin then Base Margin − Charge else Base Margin */
+  get cancelOldMarginCC(): number {
+    const chargeRaw = this.cancelForm?.get('chargeFromClient')?.value;
+    if (chargeRaw === null || chargeRaw === undefined || chargeRaw === '') return 0;
+    const charge = typeof chargeRaw === 'number' ? chargeRaw : parseFloat(chargeRaw);
+    if (isNaN(charge) || charge <= 0) return 0;
+    const base = this.baseMargin;
+    return charge < base ? base - charge : base;
   }
 
   get cancelRefundCommittedToClient(): number {
@@ -1360,17 +1364,24 @@ export class BookingDetailComponent implements OnInit {
     return Math.max(0, this.refundablePortionOfSalePrice - this.cancelTotalCancellationCharges);
   }
 
+  /** Non–Credit Card: Refund Committed To Client = Total Sale Price − Total Cancellation Charges (read-only, no textbox) */
+  get refundCommittedToClientNonCC(): number {
+    return Math.max(0, this.totalSalePriceForCancel - this.cancelTotalCancellationCharges);
+  }
+
   get newMargin(): number {
     if (!this.booking || !this.cancelForm) return 0;
     const formValue = this.cancelForm.getRawValue();
     const paymentMode = formValue.paymentModeWas;
 
     if (paymentMode === 'Credit Card') {
-      const chargeFromClient = formValue.chargeFromClient || 0;
-      return chargeFromClient + this.cancelCurrentMargin;
+      const chargeRaw = formValue.chargeFromClient;
+      const charge = (chargeRaw !== null && chargeRaw !== undefined && chargeRaw !== '') ? (typeof chargeRaw === 'number' ? chargeRaw : parseFloat(chargeRaw) || 0) : 0;
+      const base = this.baseMargin;
+      return charge > base ? charge - base : 0;
     } else {
-      const committedToClient = formValue.committedToClient || 0;
-      return this.refundablePortionOfSalePrice - committedToClient;
+      const committed = this.refundCommittedToClientNonCC;
+      return this.refundablePortionOfSalePrice - committed;
     }
   }
 

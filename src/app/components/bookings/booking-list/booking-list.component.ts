@@ -138,8 +138,7 @@ import { AuthService } from '../../../services/auth.service';
                 {{ booking.balanceAmount | number:'1.2-2' }}
               </td>
               <td class="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
-                <a [routerLink]="['/dashboard/bookings', booking._id]" class="text-primary-600 hover:text-primary-900 mr-2">View</a>
-                <a [routerLink]="['/dashboard/bookings', booking._id]" class="text-primary-600 hover:text-primary-900">Edit</a>
+                <a [routerLink]="['/dashboard/bookings', booking._id]" class="text-primary-600 hover:text-primary-900">View</a>
               </td>
             </tr>
             <tr *ngIf="bookings.length === 0">
