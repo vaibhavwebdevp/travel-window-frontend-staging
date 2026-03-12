@@ -148,27 +148,41 @@ import { AuthService } from '../../../services/auth.service';
         </table>
         </div>
 
-        <!-- Pagination -->
-        <div class="px-6 py-4 flex items-center justify-between border-t border-gray-200" *ngIf="totalPages > 1">
-          <div class="text-sm text-gray-700">
-            Page {{ currentPage }} of {{ totalPages }}
-          </div>
-          <div class="flex space-x-2">
+        <!-- Pagination - centered page numbers, top border + active underline (current color scheme) -->
+        <div class="mt-4 rounded-lg border border-gray-200 border-t-2 border-t-gray-300 bg-white overflow-hidden" *ngIf="totalPages > 1">
+          <div class="flex items-center justify-between px-4 py-3 gap-4">
             <button 
+              type="button"
               (click)="changePage(currentPage - 1)" 
               [disabled]="currentPage === 1"
-              class="btn btn-secondary"
-              [class.opacity-50]="currentPage === 1"
+              class="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-600 transition-colors flex items-center gap-1"
             >
-              Previous
+              <span aria-hidden="true">←</span> Previous
             </button>
+            <div class="flex items-center justify-center gap-4 sm:gap-5 min-w-0 flex-1">
+              <ng-container *ngFor="let p of paginationPages">
+                <span *ngIf="p === '...'" class="text-gray-500 text-sm select-none">…</span>
+                <button 
+                  *ngIf="p !== '...'" 
+                  type="button"
+                  (click)="goToPage(p)"
+                  class="py-1.5 px-1 text-sm font-medium transition-colors focus:outline-none focus:ring-0 min-w-[1.5rem] border-b-2 border-transparent"
+                  [class.text-primary-600]="currentPage === p"
+                  [class.border-primary-500]="currentPage === p"
+                  [class.text-gray-600]="currentPage !== p"
+                  [class.hover:text-gray-900]="currentPage !== p"
+                >
+                  {{ p }}
+                </button>
+              </ng-container>
+            </div>
             <button 
+              type="button"
               (click)="changePage(currentPage + 1)" 
               [disabled]="currentPage === totalPages"
-              class="btn btn-secondary"
-              [class.opacity-50]="currentPage === totalPages"
+              class="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-gray-600 transition-colors flex items-center gap-1"
             >
-              Next
+              Next <span aria-hidden="true">→</span>
             </button>
           </div>
         </div>
@@ -254,10 +268,10 @@ export class BookingListComponent implements OnInit {
 
     this.bookingService.getBookings(params).subscribe({
       next: (response) => {
-        this.bookings = response.bookings;
-        this.currentPage = response.currentPage;
-        this.totalPages = response.totalPages;
-        this.total = response.total;
+        this.bookings = response.bookings || [];
+        this.currentPage = Number(response.currentPage) || 1;
+        this.totalPages = Math.max(1, Number(response.totalPages) || 1);
+        this.total = Number(response.total) || 0;
         this.loading = false;
       },
       error: () => {
@@ -282,6 +296,28 @@ export class BookingListComponent implements OnInit {
       this.currentPage = page;
       this.loadBookings();
     }
+  }
+
+  /** Called from template for pagination; only navigates when p is a page number (not ellipsis). */
+  goToPage(p: number | string) {
+    if (typeof p === 'number') this.changePage(p);
+  }
+
+  /** Page numbers to show in pagination (with ellipsis when many pages) */
+  get paginationPages(): (number | string)[] {
+    const total = this.totalPages;
+    const current = this.currentPage;
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    const pages: (number | string)[] = [];
+    const show = new Set<number>([1, total, current, current - 1, current - 2, current + 1, current + 2]);
+    const sorted = Array.from(show).filter(p => p >= 1 && p <= total).sort((a, b) => a - b);
+    for (let i = 0; i < sorted.length; i++) {
+      if (i > 0 && sorted[i]! - sorted[i - 1]! > 1) pages.push('...');
+      pages.push(sorted[i]!);
+    }
+    return pages;
   }
 
   /** Display status: only Ticked / Unticketed / Cancelled (no Draft, Pending Verification, etc.) */

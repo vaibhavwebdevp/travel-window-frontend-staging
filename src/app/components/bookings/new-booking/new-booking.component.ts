@@ -99,7 +99,7 @@ import { ToastrService } from 'ngx-toastr';
             <div class="grid grid-cols-2 gap-4" *ngIf="bookingForm.get('sectorType')?.value === 'One Way'">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Travel Date <span class="text-red-500">*</span></label>
-                <input type="date" formControlName="travelDate" class="input" [class.border-red-500]="bookingForm.get('travelDate')?.invalid && bookingForm.get('travelDate')?.touched" />
+                <input type="date" formControlName="travelDate" class="input" [min]="minTravelDate" [class.border-red-500]="bookingForm.get('travelDate')?.invalid && bookingForm.get('travelDate')?.touched" />
                 <p *ngIf="bookingForm.get('travelDate')?.invalid && bookingForm.get('travelDate')?.touched" class="text-red-500 text-xs mt-1">Travel date is required</p>
               </div>
               <div>
@@ -117,12 +117,12 @@ import { ToastrService } from 'ngx-toastr';
             <div class="grid grid-cols-2 gap-4" *ngIf="bookingForm.get('sectorType')?.value === 'Round Trip'">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Travel Date <span class="text-red-500">*</span></label>
-                <input type="date" formControlName="travelDate" class="input" [class.border-red-500]="bookingForm.get('travelDate')?.invalid && bookingForm.get('travelDate')?.touched" />
+                <input type="date" formControlName="travelDate" class="input" [min]="minTravelDate" [class.border-red-500]="bookingForm.get('travelDate')?.invalid && bookingForm.get('travelDate')?.touched" />
                 <p *ngIf="bookingForm.get('travelDate')?.invalid && bookingForm.get('travelDate')?.touched" class="text-red-500 text-xs mt-1">Travel date is required</p>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Return Date <span class="text-red-500">*</span></label>
-                <input type="date" formControlName="returnDate" class="input" [class.border-red-500]="bookingForm.get('returnDate')?.invalid && bookingForm.get('returnDate')?.touched" />
+                <input type="date" formControlName="returnDate" class="input" [min]="minReturnDate" [class.border-red-500]="bookingForm.get('returnDate')?.invalid && bookingForm.get('returnDate')?.touched" />
                 <p *ngIf="bookingForm.get('returnDate')?.invalid && bookingForm.get('returnDate')?.touched" class="text-red-500 text-xs mt-1">Return date is required</p>
               </div>
               <div>
@@ -141,7 +141,7 @@ import { ToastrService } from 'ngx-toastr';
               <div class="grid grid-cols-3 gap-4 mb-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Travel Date <span class="text-red-500">*</span></label>
-                  <input type="date" formControlName="travelDate" class="input" [class.border-red-500]="bookingForm.get('travelDate')?.invalid && bookingForm.get('travelDate')?.touched" />
+                  <input type="date" formControlName="travelDate" class="input" [min]="minTravelDate" [class.border-red-500]="bookingForm.get('travelDate')?.invalid && bookingForm.get('travelDate')?.touched" />
                   <p *ngIf="bookingForm.get('travelDate')?.invalid && bookingForm.get('travelDate')?.touched" class="text-red-500 text-xs mt-1">Travel date is required</p>
                 </div>
                 <div>
@@ -161,7 +161,7 @@ import { ToastrService } from 'ngx-toastr';
                   <div class="grid grid-cols-4 gap-4">
                     <div>
                       <label class="block text-sm font-medium text-gray-700 mb-1">Travel Date</label>
-                      <input type="date" formControlName="travelDate" class="input" />
+                      <input type="date" formControlName="travelDate" class="input" [min]="minTravelDate" />
                     </div>
                     <div>
                       <label class="block text-sm font-medium text-gray-700 mb-1">From</label>
@@ -614,6 +614,23 @@ export class NewBookingComponent implements OnInit {
 
   get balanceAmount(): number {
     return this.totalSalePrice - this.totalPaidAmount;
+  }
+
+  /** Min date for Travel Date = today in local timezone (cannot select past date in new booking) */
+  get minTravelDate(): string {
+    const d = new Date();
+    const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+    return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
+  /** Min date for Return Date = selected travel date or today (local) */
+  get minReturnDate(): string {
+    const t = this.bookingForm.get('travelDate')?.value;
+    if (t) {
+      const s = typeof t === 'string' ? t : (t instanceof Date ? `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}` : '');
+      return s || this.minTravelDate;
+    }
+    return this.minTravelDate;
   }
 
   onSubmit() {

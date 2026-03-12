@@ -391,12 +391,12 @@ import { ToastrService } from 'ngx-toastr';
                 <label class="block text-sm font-medium text-gray-700 mb-1">Now Date Change Sale Cost</label>
                 <input type="number" formControlName="newSalePrice" class="input" step="0.01" placeholder="Add-on amount" />
               </div>
-              <!-- Two checkboxes: only if travel/return date not past -->
-              <div class="flex items-center" *ngIf="!isTravelDatePast()">
+              <!-- Change Travel/Return Date – allowed even if current travel or return date is past -->
+              <div class="flex items-center">
                 <input type="checkbox" formControlName="changeTravelDate" id="changeTravelDate" class="mr-2 h-4 w-4 rounded border-gray-300 accent-button focus:ring-2 focus:ring-button focus:ring-offset-0" />
                 <label for="changeTravelDate" class="text-sm font-medium text-gray-700">Change Travel Date</label>
               </div>
-              <div class="flex items-center" *ngIf="booking?.returnDate && !isReturnDatePast()">
+              <div class="flex items-center" *ngIf="booking?.returnDate">
                 <input type="checkbox" formControlName="changeReturnDate" id="changeReturnDate" class="mr-2 h-4 w-4 rounded border-gray-300 accent-button focus:ring-2 focus:ring-button focus:ring-offset-0" />
                 <label for="changeReturnDate" class="text-sm font-medium text-gray-700">Change Return Date</label>
               </div>
