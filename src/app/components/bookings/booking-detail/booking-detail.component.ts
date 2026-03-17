@@ -402,11 +402,11 @@ import { ToastrService } from 'ngx-toastr';
               </div>
               <div *ngIf="dateChangeForm.get('changeTravelDate')?.value">
                 <label class="block text-sm font-medium text-gray-700 mb-1">New Travel Date</label>
-                <input type="date" formControlName="newTravelDate" class="input" />
+                <input type="date" formControlName="newTravelDate" class="input" [min]="minDateChangeTravelDate" />
               </div>
               <div *ngIf="dateChangeForm.get('changeReturnDate')?.value">
                 <label class="block text-sm font-medium text-gray-700 mb-1">New Return Date</label>
-                <input type="date" formControlName="newReturnDate" class="input" />
+                <input type="date" formControlName="newReturnDate" class="input" [min]="minDateChangeReturnDate" />
               </div>
               <!-- Payment – Add Payment button (multiple rows) -->
               <div class="col-span-full">
@@ -454,11 +454,11 @@ import { ToastrService } from 'ngx-toastr';
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">New Travel Date</label>
-                <input type="date" formControlName="travelDate" class="input" />
+                <input type="date" formControlName="travelDate" class="input" [min]="minFlightChangeTravelDate" />
               </div>
               <div *ngIf="booking?.returnDate">
                 <label class="block text-sm font-medium text-gray-700 mb-1">New Return Date</label>
-                <input type="date" formControlName="returnDate" class="input" />
+                <input type="date" formControlName="returnDate" class="input" [min]="minFlightChangeReturnDate" />
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Add-on Our Cost <span class="text-gray-500 font-normal">(optional)</span></label>
@@ -748,6 +748,40 @@ export class BookingDetailComponent implements OnInit {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return t < today;
+  }
+
+  /** Min date for Date Change new travel date = today (local) */
+  get minDateChangeTravelDate(): string {
+    const d = new Date();
+    const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+    return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
+  /** Min date for Date Change new return date = new travel date (if set) or today */
+  get minDateChangeReturnDate(): string {
+    const t = this.dateChangeForm?.get('newTravelDate')?.value;
+    if (t) {
+      const s = typeof t === 'string' ? t : (t instanceof Date ? `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}` : '');
+      if (s) return s;
+    }
+    return this.minDateChangeTravelDate;
+  }
+
+  /** Min date for Flight Change travel date = today (local); past dates not selectable */
+  get minFlightChangeTravelDate(): string {
+    const d = new Date();
+    const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+    return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
+  /** Min date for Flight Change return date = selected travel date or today */
+  get minFlightChangeReturnDate(): string {
+    const t = this.flightChangeForm?.get('travelDate')?.value;
+    if (t) {
+      const s = typeof t === 'string' ? t : (t instanceof Date ? `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}` : '');
+      if (s) return s;
+    }
+    return this.minFlightChangeTravelDate;
   }
 
   ngOnInit() {

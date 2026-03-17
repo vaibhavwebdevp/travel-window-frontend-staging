@@ -714,7 +714,11 @@ export class NewBookingComponent implements OnInit {
   }
 
   cancel() {
-    this.router.navigate(['/dashboard/bookings']);
+    if (this.isEditMode && this.bookingId) {
+      this.router.navigate(['/dashboard/bookings', this.bookingId]);
+    } else {
+      this.router.navigate(['/dashboard/bookings']);
+    }
   }
 
   /** Auto convert to Title case (Contact Person) per spec */

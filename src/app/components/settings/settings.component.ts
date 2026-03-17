@@ -35,7 +35,7 @@ import { ToastrService } from 'ngx-toastr';
               <label class="absolute bottom-0 right-0 bg-[#0096D2] text-white rounded-full p-1.5 cursor-pointer shadow hover:bg-[#0080b8]">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept=".jpeg,.jpg,.png,image/jpeg,image/jpg,image/png"
                   class="hidden"
                   (change)="onPhotoSelect($event)"
                 />
@@ -45,7 +45,7 @@ import { ToastrService } from 'ngx-toastr';
               </label>
             </div>
             <div class="flex-1">
-              <p class="text-sm text-gray-600 mb-2">Upload a photo (JPG, PNG). Max 2MB.</p>
+              <p class="text-sm text-gray-600 mb-2">Upload a photo (.jpeg, .jpg, .png only). Max 2MB.</p>
               <button
                 type="button"
                 (click)="savePhoto()"
@@ -189,12 +189,23 @@ export class SettingsComponent implements OnInit {
     });
   }
 
+  private readonly allowedPhotoTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+  private readonly allowedPhotoExtensions = ['.jpeg', '.jpg', '.png'];
+
   onPhotoSelect(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
+    const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
+    const typeOk = this.allowedPhotoTypes.includes(file.type) || this.allowedPhotoExtensions.includes(ext);
+    if (!typeOk) {
+      this.toastr.warning('Only .jpeg, .jpg and .png images are allowed', 'Invalid file type');
+      input.value = '';
+      return;
+    }
     if (file.size > 2 * 1024 * 1024) {
       this.toastr.warning('Please choose an image under 2MB', 'File too large');
+      input.value = '';
       return;
     }
     const reader = new FileReader();
