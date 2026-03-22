@@ -70,11 +70,11 @@ import { ToastrService } from 'ngx-toastr';
                 {{ getDisplayStatus() }}
               </span>
             </div>
-            <div>
+            <div *ngIf="canShowAccountVerified()">
               <label class="block text-sm font-medium text-gray-500 mb-1">Account Verified</label>
               <span [ngClass]="booking.verifiedByAccount ? 'text-green-600 font-medium' : 'text-gray-500'">{{ booking.verifiedByAccount ? 'Verified' : 'Not Verified' }}</span>
             </div>
-            <div>
+            <div *ngIf="canShowAdminVerified()">
               <label class="block text-sm font-medium text-gray-500 mb-1">Admin Verified</label>
               <span [ngClass]="booking.verifiedByAdmin ? 'text-green-600 font-medium' : 'text-gray-500'">{{ booking.verifiedByAdmin ? 'Verified' : 'Not Verified' }}</span>
             </div>
@@ -838,6 +838,18 @@ export class BookingDetailComponent implements OnInit {
   }
 
   isAdmin(): boolean {
+    const user = this.authService.getCurrentUserValue();
+    return user?.role === 'ADMIN';
+  }
+
+  /** Account verified visible to Admin + Account only */
+  canShowAccountVerified(): boolean {
+    const user = this.authService.getCurrentUserValue();
+    return user?.role === 'ADMIN' || user?.role === 'ACCOUNT';
+  }
+
+  /** Admin verified visible to Admin only */
+  canShowAdminVerified(): boolean {
     const user = this.authService.getCurrentUserValue();
     return user?.role === 'ADMIN';
   }

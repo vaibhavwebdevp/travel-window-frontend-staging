@@ -39,6 +39,15 @@
     @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 transition-all bg-white;
   }
 
+  /* Guaranteed eye-icon placement for password inputs */
+  .password-eye-btn {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    left: auto;
+    transform: translateY(-50%);
+  }
+
   .card {
     @apply bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100;
   }

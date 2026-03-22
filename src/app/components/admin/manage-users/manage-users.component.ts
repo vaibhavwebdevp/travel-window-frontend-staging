@@ -30,8 +30,83 @@ import Swal from 'sweetalert2';
       </div>
 
       <!-- Add/Edit User Form -->
-      <div *ngIf="showAddForm || editingUser" class="card mb-6">
-        <h3 class="text-xl font-semibold mb-4 text-gray-700">{{ editingUser ? 'Edit User' : 'Add New User' }}</h3>
+      <div *ngIf="showAddForm || editingUser || passwordFormUser" class="card mb-6">
+        <h3 class="text-xl font-semibold mb-4 text-gray-700">{{ passwordFormUser ? 'Update Password' : (editingUser ? 'Edit User' : 'Add New User') }}</h3>
+        <ng-container *ngIf="passwordFormUser; else userFormTemplate">
+          <p class="text-sm text-gray-600 mb-4">Set new password for {{ passwordFormUser.name }} ({{ passwordFormUser.email }})</p>
+          <form [formGroup]="passwordForm" (ngSubmit)="onSubmitPassword()">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">New password <span class="text-red-500">*</span></label>
+                <div class="relative">
+                  <input
+                    [type]="showNewPassword ? 'text' : 'password'"
+                    formControlName="newPassword"
+                    class="input pr-10"
+                    placeholder="Enter new password"
+                    autocomplete="new-password"
+                    [class.border-red-500]="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched"
+                  />
+                  <button
+                    type="button"
+                    (click)="showNewPassword = !showNewPassword"
+                    class="absolute flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700"
+                    style="right: 10px; left: auto; top: 50%; transform: translateY(-50%);"
+                    tabindex="-1"
+                  >
+                    <svg *ngIf="!showNewPassword" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    <svg *ngIf="showNewPassword" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                  </button>
+                </div>
+                <p *ngIf="passwordForm.get('newPassword')?.errors?.['minlength'] && passwordForm.get('newPassword')?.touched" class="text-red-500 text-xs mt-1">At least 6 characters</p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Confirm password <span class="text-red-500">*</span></label>
+                <div class="relative">
+                  <input
+                    [type]="showConfirmPassword ? 'text' : 'password'"
+                    formControlName="confirmPassword"
+                    class="input pr-10"
+                    placeholder="Confirm new password"
+                    autocomplete="new-password"
+                    [class.border-red-500]="passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.touched"
+                  />
+                  <button
+                    type="button"
+                    (click)="showConfirmPassword = !showConfirmPassword"
+                    class="absolute flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700"
+                    style="right: 10px; left: auto; top: 50%; transform: translateY(-50%);"
+                    tabindex="-1"
+                  >
+                    <svg *ngIf="!showConfirmPassword" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    <svg *ngIf="showConfirmPassword" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                  </button>
+                </div>
+                <p *ngIf="passwordForm.errors?.['passwordMismatch'] && passwordForm.get('confirmPassword')?.touched" class="text-red-500 text-xs mt-1">Passwords do not match</p>
+              </div>
+            </div>
+            <div class="mt-4 flex justify-end space-x-2">
+              <button
+                type="button"
+                (click)="closePasswordForm()"
+                class="btn btn-secondary flex items-center gap-2"
+                title="Cancel"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary flex items-center gap-2" [disabled]="passwordForm.invalid || savingPassword">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                {{ savingPassword ? 'Updating...' : 'Update Password' }}
+              </button>
+            </div>
+          </form>
+        </ng-container>
+        <ng-template #userFormTemplate>
         <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -106,6 +181,7 @@ import Swal from 'sweetalert2';
             </button>
           </div>
         </form>
+        </ng-template>
       </div>
 
       <!-- Users Table -->
@@ -188,7 +264,7 @@ import Swal from 'sweetalert2';
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <button 
                       (click)="editUser(user)" 
                       class="text-primary-600 hover:text-primary-900 flex items-center gap-1 px-2 py-1 rounded transition-colors"
@@ -198,6 +274,16 @@ import Swal from 'sweetalert2';
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                       Edit
+                    </button>
+                    <button 
+                      (click)="openPasswordForm(user)" 
+                      class="text-amber-600 hover:text-amber-800 flex items-center gap-1 px-2 py-1 rounded transition-colors"
+                      title="Update Password"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                      </svg>
+                      Password
                     </button>
                     <button 
                       *ngIf="user._id !== currentUserId" 
@@ -222,6 +308,7 @@ import Swal from 'sweetalert2';
         </div>
       </div>
     </div>
+
   `
 })
 export class ManageUsersComponent implements OnInit {
@@ -230,6 +317,11 @@ export class ManageUsersComponent implements OnInit {
   showAddForm = false;
   editingUser: User | null = null;
   userForm: FormGroup;
+  passwordFormUser: User | null = null;
+  passwordForm: FormGroup;
+  savingPassword = false;
+  showNewPassword = false;
+  showConfirmPassword = false;
   currentUserId: string | null = null;
   togglingUserId: string | null = null;
 
@@ -246,6 +338,15 @@ export class ManageUsersComponent implements OnInit {
       password: [''],
       isActive: [true]
     });
+
+    this.passwordForm = this.fb.group({
+      newPassword: ['', [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ['', Validators.required]
+    }, { validators: (g) => {
+      const np = g.get('newPassword')?.value;
+      const cp = g.get('confirmPassword')?.value;
+      return np && cp && np !== cp ? { passwordMismatch: true } : null;
+    } });
 
     this.authService.currentUser$.subscribe(user => {
       if (user) {
@@ -398,9 +499,46 @@ export class ManageUsersComponent implements OnInit {
   cancelForm() {
     this.showAddForm = false;
     this.editingUser = null;
+    this.passwordFormUser = null;
     this.userForm.reset();
     this.userForm.get('password')?.setValidators([Validators.required]);
     this.userForm.get('password')?.updateValueAndValidity();
+  }
+
+  openPasswordForm(user: User) {
+    this.passwordFormUser = user;
+    this.showAddForm = true;
+    this.editingUser = null;
+    this.showNewPassword = false;
+    this.showConfirmPassword = false;
+    this.passwordForm.reset();
+  }
+
+  closePasswordForm() {
+    this.passwordFormUser = null;
+    this.showAddForm = false;
+    this.showNewPassword = false;
+    this.showConfirmPassword = false;
+    this.passwordForm.reset();
+  }
+
+  onSubmitPassword() {
+    if (this.passwordForm.invalid || !this.passwordFormUser) return;
+    const newPw = this.passwordForm.get('newPassword')?.value?.trim();
+    const confirm = this.passwordForm.get('confirmPassword')?.value?.trim();
+    if (newPw !== confirm) return;
+    this.savingPassword = true;
+    this.userService.updateUser(this.passwordFormUser!._id!, { password: newPw }).subscribe({
+      next: () => {
+        this.toastr.success(`Password updated for ${this.passwordFormUser?.name}`, 'Success');
+        this.closePasswordForm();
+        this.savingPassword = false;
+      },
+      error: (err) => {
+        this.toastr.error(err.error?.message || 'Failed to update password', 'Error');
+        this.savingPassword = false;
+      }
+    });
   }
 
   /** Initials from name: first letter of first word + first letter of last word, or first 2 chars if single word */
