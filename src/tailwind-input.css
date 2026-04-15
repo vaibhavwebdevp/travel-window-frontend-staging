@@ -106,37 +106,34 @@
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 40%, #0ea5e9 100%) !important;
   }
 
-  /* Shimmer/Skeleton loading animation */
+  /* Shimmer/Skeleton loading animation - consistent across app */
   @keyframes shimmer {
     0% {
-      background-position: -1000px 0;
+      background-position: 200% 0;
     }
     100% {
-      background-position: 1000px 0;
+      background-position: -200% 0;
     }
   }
 
   .shimmer {
-    animation: shimmer 2s infinite;
-    background: linear-gradient(
-      to right,
-      #f0f0f0 0%,
-      #e0e0e0 20%,
-      #f0f0f0 40%,
-      #f0f0f0 100%
-    );
-    background-size: 1000px 100%;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 45%, #e5e7eb 100%);
+    background-size: 220% 100%;
+    animation: shimmer 1.35s linear infinite;
+    will-change: background-position;
   }
 
   .skeleton-card {
-    @apply bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 shimmer;
+    @apply bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100;
   }
 
   .skeleton-line {
-    @apply h-4 bg-gray-200 rounded shimmer;
+    @apply h-4 rounded-md shimmer block;
   }
 
   .skeleton-circle {
-    @apply rounded-full bg-gray-200 shimmer;
+    @apply rounded-full shimmer block;
   }
 }

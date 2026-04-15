@@ -248,8 +248,9 @@ import Swal from 'sweetalert2';
                       role="switch"
                       [attr.aria-checked]="user.isActive !== false"
                       [attr.aria-label]="(user.isActive !== false ? 'Deactivate' : 'Activate') + ' ' + user.name"
+                      [title]="user._id === currentUserId ? 'You cannot change your own active status' : ''"
                       (click)="toggleActive(user)"
-                      [disabled]="togglingUserId === user._id"
+                      [disabled]="togglingUserId === user._id || user._id === currentUserId"
                       class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#38bdf8] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       [class.bg-gray-200]="user.isActive === false"
                       [class.toggle-active]="user.isActive !== false"
@@ -453,6 +454,10 @@ export class ManageUsersComponent implements OnInit {
 
   toggleActive(user: User) {
     if (this.togglingUserId) return;
+    if (user._id === this.currentUserId) {
+      this.toastr.warning('You cannot change your own active status', 'Not allowed');
+      return;
+    }
     const newActive = !(user.isActive !== false);
     this.togglingUserId = user._id!;
     this.userService.updateUser(user._id!, { isActive: newActive }).subscribe({

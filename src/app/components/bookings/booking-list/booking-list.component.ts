@@ -39,13 +39,15 @@ import { AuthService } from '../../../services/auth.service';
           </div>
           <div *ngIf="!isAccount()">
             <label class="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
-            <select formControlName="supplier" class="input" [disabled]="loadingSuppliers">
-              <option value="">All Suppliers</option>
-              <option *ngFor="let s of suppliers" [value]="s._id">{{ s.name }}</option>
-            </select>
-            <div *ngIf="loadingSuppliers" class="mt-1">
-              <div class="skeleton-line w-full h-10"></div>
-            </div>
+            <ng-container *ngIf="!loadingSuppliers; else supplierSkeleton">
+              <select formControlName="supplier" class="input">
+                <option value="">All Suppliers</option>
+                <option *ngFor="let s of suppliers" [value]="s._id">{{ s.name }}</option>
+              </select>
+            </ng-container>
+            <ng-template #supplierSkeleton>
+              <div class="skeleton-line w-full h-10 rounded-lg"></div>
+            </ng-template>
           </div>
           <div *ngIf="!isAccount()">
             <label class="block text-sm font-medium text-gray-700 mb-1">Date From</label>

@@ -509,7 +509,7 @@ export class NewBookingComponent implements OnInit {
     const paymentGroup = this.fb.group({
       paidAmount: [0, Validators.required],
       paymentMode: ['Cash', Validators.required],
-      paymentDate: [new Date().toISOString().split('T')[0], Validators.required],
+      paymentDate: [this.toDateInputValue(new Date()), Validators.required],
       referenceNo: ['']
     });
     this.paymentsArray.push(paymentGroup);
@@ -537,8 +537,8 @@ export class NewBookingComponent implements OnInit {
           ...restBooking,
           countryCode,
           contactNumber: (localNumber || '').replace(/\D/g, ''),
-          travelDate: booking.travelDate ? new Date(booking.travelDate).toISOString().split('T')[0] : '',
-          returnDate: booking.returnDate ? new Date(booking.returnDate).toISOString().split('T')[0] : '',
+          travelDate: this.toDateInputValue(booking.travelDate),
+          returnDate: this.toDateInputValue(booking.returnDate),
           supplier: booking.supplier?._id || booking.supplier || ''
         });
 
@@ -549,7 +549,7 @@ export class NewBookingComponent implements OnInit {
         if (booking.multipleSectors && booking.multipleSectors.length > 0) {
           booking.multipleSectors.forEach(sector => {
             const sectorGroup = this.fb.group({
-              travelDate: sector.travelDate ? new Date(sector.travelDate).toISOString().split('T')[0] : '',
+              travelDate: this.toDateInputValue(sector.travelDate),
               from: sector.from || '',
               to: sector.to || ''
             });
@@ -563,8 +563,7 @@ export class NewBookingComponent implements OnInit {
         }
         if (booking.payments && booking.payments.length > 0) {
           booking.payments.forEach((payment: any) => {
-            const d = payment.paymentDate ? new Date(payment.paymentDate) : null;
-            const dateStr = d && !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+            const dateStr = this.toDateInputValue(payment.paymentDate) || this.toDateInputValue(new Date());
             this.paymentsArray.push(this.fb.group({
               paidAmount: [payment.paidAmount ?? 0, Validators.required],
               paymentMode: [payment.paymentMode || 'Cash', Validators.required],
@@ -678,11 +677,11 @@ export class NewBookingComponent implements OnInit {
       const bookingData: any = {
         ...rest,
         contactNumber: fullContactNumber.trim(),
-        travelDate: new Date(formValue.travelDate),
-        returnDate: formValue.returnDate ? new Date(formValue.returnDate) : null,
+        travelDate: formValue.travelDate || null,
+        returnDate: formValue.returnDate || null,
         multipleSectors: (formValue.multipleSectors || []).map((s: any) => ({
           ...s,
-          travelDate: s.travelDate ? new Date(s.travelDate) : null
+          travelDate: s.travelDate || null
         })),
         payments: paymentsPayload
       };
@@ -780,5 +779,16 @@ export class NewBookingComponent implements OnInit {
       return { countryCode: plusMatch[1], localNumber: (plusMatch[2] || '').trim() };
     }
     return { countryCode: '+91', localNumber: trimmed };
+  }
+
+  /** Convert Date/ISO/date-string to yyyy-mm-dd for date inputs without local timezone shifts. */
+  toDateInputValue(value: any): string {
+    if (!value) return '';
+    const d = value instanceof Date ? value : new Date(value);
+    if (isNaN(d.getTime())) return '';
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 }
