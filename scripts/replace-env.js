@@ -3,11 +3,17 @@
 const fs = require('fs');
 const path = require('path');
 
-const envFile = path.join(__dirname, '../src/environments/environment.prod.ts');
+const targetEnv = (process.env.NG_BUILD_ENV || 'production').toLowerCase();
+const envFileName = targetEnv === 'staging' ? 'environment.staging.ts' : 'environment.prod.ts';
+const envFile = path.join(__dirname, `../src/environments/${envFileName}`);
 
 // Read environment variables (Vercel pe set karein: NG_APP_API_URL)
 // Priority: NG_APP_API_URL > API_URL > default
-let apiUrl = process.env.NG_APP_API_URL || process.env.API_URL || 'https://travel-window-backend.vercel.app/api';
+let apiUrl = process.env.NG_APP_API_URL || process.env.API_URL || (
+  targetEnv === 'staging'
+    ? 'https://travel-window-backend-staging.vercel.app/api'
+    : 'https://travel-window-backend.vercel.app/api'
+);
 
 // Ensure https:// prefix is present
 if (apiUrl && !apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
@@ -35,5 +41,6 @@ content = content.replace(
 fs.writeFileSync(envFile, content, 'utf8');
 
 console.log('✅ Environment variables replaced:');
+console.log(`   Target env file: ${envFileName}`);
 console.log(`   API URL: ${apiUrl}`);
 console.log(`   reCAPTCHA Site Key: ${recaptchaSiteKey || '(empty)'}`);
