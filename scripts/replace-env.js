@@ -20,6 +20,12 @@ if (apiUrl && !apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
   apiUrl = 'https://' + apiUrl;
 }
 
+if (targetEnv === 'staging' && /travel-window-backend\.vercel\.app/i.test(apiUrl)) {
+  console.error('❌ Staging build blocked: API URL points to production backend.');
+  console.error(`   Received NG_APP_API_URL/API_URL: ${apiUrl}`);
+  process.exit(1);
+}
+
 const recaptchaSiteKey = process.env.NG_APP_RECAPTCHA_SITE_KEY || process.env.RECAPTCHA_SITE_KEY || '';
 
 // Read the file
