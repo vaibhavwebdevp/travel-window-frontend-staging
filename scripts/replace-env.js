@@ -19,6 +19,7 @@ let apiUrl = process.env.NG_APP_API_URL || process.env.API_URL || (
 if (apiUrl && !apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
   apiUrl = 'https://' + apiUrl;
 }
+apiUrl = (apiUrl || '').replace(/\/+$/, '');
 
 if (targetEnv === 'staging' && /travel-window-backend\.vercel\.app/i.test(apiUrl)) {
   console.error('❌ Staging build blocked: API URL points to production backend.');
